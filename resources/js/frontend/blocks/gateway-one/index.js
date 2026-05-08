@@ -6,13 +6,13 @@ import { getSetting } from '@woocommerce/settings';
 import {Content, ariaLabel, Label} from '../base';
 import { PAYMENT_METHOD_NAME } from './constants';
 
-const settings = getSetting( 'paystack-one_data', {} );
+const settings = getSetting( 'lomi-one_data', {} );
 const label = ariaLabel({ title: settings.title });
 
 /**
- * Paystack payment method config object.
+ * lomi. payment method config object.
  */
-const Paystack_Gateway = {
+const Lomi_Gateway = {
     name: PAYMENT_METHOD_NAME,
     label: <Label logoUrls={ settings.logo_urls } title={ label } />,
     content: <Content description={ settings.description } />,
@@ -26,4 +26,4 @@ const Paystack_Gateway = {
     },
 };
 
-registerPaymentMethod( Paystack_Gateway );
+registerPaymentMethod( Lomi_Gateway );

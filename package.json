@@ -1,6 +1,6 @@
 {
-	"name": "woo-paystack",
-	"title": "Paystack WooCommerce Payment Gateway",
+	"name": "woo-lomi",
+	"title": "lomi. WooCommerce Payment Gateway",
 	"version": "5.8.2",
 	"author": "Tunbosun Ayinla",
 	"license": "GPL-3.0+",

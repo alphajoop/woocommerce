@@ -5,8 +5,8 @@ import { __ } from '@wordpress/i18n';
 import { decodeEntities } from '@wordpress/html-entities';
 
 const defaultLabel = __(
-    'Paystack ',
-    'woo-paystack'
+    'lomi. ',
+    'woo-lomi'
 );
 
 export const ariaLabel = ({ title }) => {

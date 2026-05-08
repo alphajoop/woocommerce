@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class WC_Gateway_Paystack_Five extends WC_Gateway_Custom_Paystack {
+class WC_Gateway_Lomi_Four extends WC_Gateway_Custom_Lomi {
 
 	/**
 	 * Payment channels.
@@ -35,38 +35,37 @@ class WC_Gateway_Paystack_Five extends WC_Gateway_Custom_Paystack {
 	public $payment_icons;
 
 	/**
-	 * Paystack settings.
+	 * lomi. settings.
 	 *
 	 * @var array
 	 */
-	public $paystack_settings;
+	public $lomi_settings;
 
 	/**
-	 * WC_Gateway_Paystack_Five constructor.
+	 * WC_Gateway_Lomi_Four constructor.
 	 */
 	public function __construct() {
 
-		$this->id = 'paystack-five';
+		$this->id = 'lomi-four';
 
 		$gateway_title = $this->get_option( 'title' );
 
 		if ( empty( $gateway_title ) ) {
-			$gateway_title = __( 'Five', 'woo-paystack' );
+			$gateway_title = __( 'Four', 'woo-lomi' );
 		}
 
 		/* Translators: 1: Gateway title. */
-		$this->method_title = sprintf( __( 'Paystack - %s', 'woo-paystack' ), $gateway_title );
+		$this->method_title = sprintf( __( 'lomi. - %s', 'woo-lomi' ), $gateway_title );
 
-		/* Translators: 1: Paystack Website URL. 2: Paystack Developer Dashboard URL. */
-		$this->method_description = sprintf( __( 'Paystack provides merchants with the tools and services needed to accept online payments from local and international customers using Mastercard, Visa, Verve Cards and Bank Accounts. <a href="%1$s" target="_blank">Sign up</a> for a Paystack account, and <a href="%2$s" target="_blank">get your API keys</a>.', 'woo-paystack' ), 'https://paystack.com', 'https://dashboard.paystack.com/#/settings/developer' );
+		/* Translators: 1: lomi. Website URL. 2: lomi. Developer Dashboard URL. */
+		$this->method_description = sprintf( __( 'Additional lomi. payment method using shared API keys from the main lomi. gateway. <a href="%1$s" target="_blank">lomi.</a> · <a href="%2$s" target="_blank">Dashboard</a>.', 'woo-lomi' ), 'https://lomi.africa', 'https://dashboard.lomi.africa' );
 
 		$this->payment_page = $this->get_option( 'payment_page' );
 
-		$this->has_fields = true;
+		$this->has_fields = false;
 
 		$this->supports = array(
 			'products',
-			'tokenization',
 			'subscriptions',
 			'multiple_subscriptions',
 			'subscription_cancellation',
@@ -78,27 +77,27 @@ class WC_Gateway_Paystack_Five extends WC_Gateway_Custom_Paystack {
 			'subscription_payment_method_change_customer',
 		);
 
-		$this->paystack_settings = get_option( 'woocommerce_paystack_settings', '' );
+		$this->lomi_settings = get_option( 'woocommerce_lomi_settings', '' );
 
 		// Get setting values.
 		$this->title       = $gateway_title;
 		$this->description = $this->get_option( 'description' );
 		$this->enabled     = $this->get_option( 'enabled' );
 
-		$this->testmode = $this->paystack_settings['testmode'] === 'yes' ? true : false;
+		$this->testmode = $this->lomi_settings['testmode'] === 'yes' ? true : false;
 
 		$this->payment_channels = $this->get_option( 'payment_channels' );
 
 		$this->cards = $this->get_option( 'cards_allowed' );
 		$this->banks = $this->get_option( 'banks_allowed' );
 
-		$this->test_public_key = $this->paystack_settings['test_public_key'];
-		$this->test_secret_key = $this->paystack_settings['test_secret_key'];
+		$this->test_public_key = $this->lomi_settings['test_public_key'];
+		$this->test_secret_key = $this->lomi_settings['test_secret_key'];
 
-		$this->live_public_key = $this->paystack_settings['live_public_key'];
-		$this->live_secret_key = $this->paystack_settings['live_secret_key'];
+		$this->live_public_key = $this->lomi_settings['live_public_key'];
+		$this->live_secret_key = $this->lomi_settings['live_secret_key'];
 
-		$this->saved_cards = $this->paystack_settings['saved_cards'] === 'yes' ? true : false;
+		$this->saved_cards = $this->lomi_settings['saved_cards'] === 'yes' ? true : false;
 
 		$this->split_payment              = $this->get_option( 'split_payment' ) === 'yes' ? true : false;
 		$this->remove_cancel_order_button = $this->get_option( 'remove_cancel_order_button' ) === 'yes' ? true : false;

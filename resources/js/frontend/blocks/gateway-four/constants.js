@@ -1,1 +1,1 @@
-export const PAYMENT_METHOD_NAME = 'paystack-four';
+export const PAYMENT_METHOD_NAME = 'lomi-four';
