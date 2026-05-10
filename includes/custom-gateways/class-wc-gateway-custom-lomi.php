@@ -406,20 +406,14 @@ class WC_Gateway_Custom_Lomi extends WC_Gateway_Lomi_Subscriptions {
 	 * Display the selected payment icon.
 	 */
 	public function get_icon() {
-		$icon_html = '<img src="' . WC_HTTPS::force_https_url( WC_LOMI_URL . '/assets/images/lomi.png' ) . '" alt="lomi" style="height: 40px; margin-right: 0.4em;margin-bottom: 0.6em;" />';
-		$icon      = $this->payment_icons;
-
-		if ( is_array( $icon ) ) {
-
-			$additional_icon = '';
-
-			foreach ( $icon as $i ) {
-				$additional_icon .= '<img src="' . WC_HTTPS::force_https_url( WC_LOMI_URL . '/assets/images/' . $i . '.png' ) . '" alt="' . $i . '" style="height: 40px; margin-right: 0.4em;margin-bottom: 0.6em;" />';
-			}
-
-			$icon_html .= $additional_icon;
+		$icons = $this->payment_icons;
+		if ( ! is_array( $icons ) || empty( $icons ) ) {
+			$icons = array( 'lomi' );
 		}
-
+		$icon_html = '';
+		foreach ( $icons as $i ) {
+			$icon_html .= '<img src="' . esc_url( wc_lomi_get_payment_icon_url( $i ) ) . '" alt="' . esc_attr( (string) $i ) . '" style="height: 40px; margin-right: 0.4em;margin-bottom: 0.6em;" />';
+		}
 		return apply_filters( 'woocommerce_gateway_icon', $icon_html, $this->id );
 	}
 

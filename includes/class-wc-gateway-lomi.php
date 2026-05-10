@@ -328,19 +328,8 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway_CC {
 	 */
 	public function get_icon() {
 
-		$base_location = wc_get_base_location();
-
-		if ( 'GH' === $base_location['country'] ) {
-			$icon = '<img src="' . WC_HTTPS::force_https_url( plugins_url( 'assets/images/lomi-gh.png', WC_LOMI_MAIN_FILE ) ) . '" alt="' . esc_attr__( 'lomi. payment methods', 'woo-lomi' ) . '" />';
-		} elseif ( 'ZA' === $base_location['country'] ) {
-			$icon = '<img src="' . WC_HTTPS::force_https_url( plugins_url( 'assets/images/lomi-za.png', WC_LOMI_MAIN_FILE ) ) . '" alt="' . esc_attr__( 'lomi. payment methods', 'woo-lomi' ) . '" />';
-		} elseif ( 'KE' === $base_location['country'] ) {
-			$icon = '<img src="' . WC_HTTPS::force_https_url( plugins_url( 'assets/images/lomi-ke.png', WC_LOMI_MAIN_FILE ) ) . '" alt="' . esc_attr__( 'lomi. payment methods', 'woo-lomi' ) . '" />';
-		} elseif ( 'CI' === $base_location['country'] ) {
-			$icon = '<img src="' . WC_HTTPS::force_https_url( plugins_url( 'assets/images/lomi-civ.png', WC_LOMI_MAIN_FILE ) ) . '" alt="' . esc_attr__( 'lomi. payment methods', 'woo-lomi' ) . '" />';
-		} else {
-			$icon = '<img src="' . WC_HTTPS::force_https_url( plugins_url( 'assets/images/lomi-wc.png', WC_LOMI_MAIN_FILE ) ) . '" alt="' . esc_attr__( 'lomi. payment methods', 'woo-lomi' ) . '" />';
-		}
+		$url  = wc_lomi_get_payment_icon_url( 'lomi' );
+		$icon = '<img src="' . esc_url( $url ) . '" alt="' . esc_attr__( 'lomi. payment methods', 'woo-lomi' ) . '" />';
 
 		return apply_filters( 'woocommerce_gateway_icon', $icon, $this->id );
 
@@ -1478,19 +1467,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway_CC {
 
 	public function get_logo_url() {
 
-		$base_location = wc_get_base_location();
-
-		if ( 'GH' === $base_location['country'] ) {
-			$url = WC_HTTPS::force_https_url( plugins_url( 'assets/images/lomi-gh.png', WC_LOMI_MAIN_FILE ) );
-		} elseif ( 'ZA' === $base_location['country'] ) {
-			$url = WC_HTTPS::force_https_url( plugins_url( 'assets/images/lomi-za.png', WC_LOMI_MAIN_FILE ) );
-		} elseif ( 'KE' === $base_location['country'] ) {
-			$url = WC_HTTPS::force_https_url( plugins_url( 'assets/images/lomi-ke.png', WC_LOMI_MAIN_FILE ) );
-		} elseif ( 'CI' === $base_location['country'] ) {
-			$url = WC_HTTPS::force_https_url( plugins_url( 'assets/images/lomi-civ.png', WC_LOMI_MAIN_FILE ) );
-		} else {
-			$url = WC_HTTPS::force_https_url( plugins_url( 'assets/images/lomi-wc.png', WC_LOMI_MAIN_FILE ) );
-		}
+		$url = wc_lomi_get_payment_icon_url( 'lomi' );
 
 		return apply_filters( 'wc_lomi_gateway_icon_url', $url, $this->id );
 	}

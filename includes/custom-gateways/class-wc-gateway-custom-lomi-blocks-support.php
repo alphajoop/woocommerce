@@ -85,7 +85,7 @@ class WC_Gateway_Custom_Lomi_Blocks_Support extends AbstractPaymentMethodType {
 
 		$payment_icons_url = array();
 		foreach ( $payment_icons as $payment_icon ) {
-			$payment_icons_url[] = WC_HTTPS::force_https_url( plugins_url( "assets/images/{$payment_icon}.png", WC_LOMI_MAIN_FILE ) );
+			$payment_icons_url[] = wc_lomi_get_payment_icon_url( $payment_icon );
 		}
 
 		return array(

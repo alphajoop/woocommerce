@@ -110,7 +110,7 @@ jQuery( function( $ ) {
 		}
 
 		var $payment_method = $(
-			'<span><img src=" ' + wc_lomi_admin_params.plugin_url + '/assets/images/' + payment_method.element.value.toLowerCase() + '.png" class="img-flag" style="height: 15px; weight:18px;" /> ' + payment_method.text + '</span>'
+			'<span><img src="' + wc_lomi_admin_params.plugin_url + '/assets/images/lomi-placeholder.svg" class="img-flag" style="height: 15px; width:18px;" alt="" /> ' + payment_method.text + '</span>'
 		);
 
 		return $payment_method;

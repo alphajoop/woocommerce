@@ -30,6 +30,37 @@ define( 'WC_LOMI_URL', untrailingslashit( plugins_url( '/', __FILE__ ) ) );
 define( 'WC_LOMI_VERSION', '6.0.0' );
 
 /**
+ * Force HTTPS URL when WooCommerce is available.
+ *
+ * @param string $url URL.
+ * @return string
+ */
+function wc_lomi_force_https_url( $url ) {
+	return class_exists( 'WC_HTTPS' ) ? WC_HTTPS::force_https_url( $url ) : $url;
+}
+
+/**
+ * Resolve payment icon URL: first existing assets/images/{slug}.{svg,png,...} or bundled placeholder.
+ *
+ * @param string $slug Basename without extension.
+ * @return string
+ */
+function wc_lomi_get_payment_icon_url( $slug ) {
+	$slug = strtolower( sanitize_file_name( (string) $slug ) );
+	if ( '' === $slug ) {
+		$slug = 'lomi';
+	}
+	$dir = dirname( WC_LOMI_MAIN_FILE ) . '/assets/images/';
+	foreach ( array( 'svg', 'png', 'webp', 'jpg', 'jpeg' ) as $ext ) {
+		$file = $dir . $slug . '.' . $ext;
+		if ( is_readable( $file ) ) {
+			return wc_lomi_force_https_url( plugins_url( 'assets/images/' . $slug . '.' . $ext, WC_LOMI_MAIN_FILE ) );
+		}
+	}
+	return wc_lomi_force_https_url( plugins_url( 'assets/images/lomi-placeholder.svg', WC_LOMI_MAIN_FILE ) );
+}
+
+/**
  * Initialize lomi. WooCommerce payment gateway.
  */
 function tbz_wc_lomi_init() {
