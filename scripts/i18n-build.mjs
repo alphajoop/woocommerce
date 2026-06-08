@@ -274,7 +274,7 @@ function extractMessages() {
 
 function header(projectId, language = '') {
 	return [
-		'Project-Id-Version: lomi. for WooCommerce 1.0.0\\n',
+		'Project-Id-Version: lomi. for WooCommerce 1.001.1\\n',
 		`Report-Msgid-Bugs-To: https://github.com/alphajoop/woocommerce/issues\\n`,
 		`POT-Creation-Date: ${new Date().toISOString()}\\n`,
 		`PO-Revision-Date: ${new Date().toISOString()}\\n`,

@@ -3,7 +3,7 @@
  * Plugin Name: lomi. for WooCommerce
  * Plugin URI: https://lomi.africa
  * Description: WooCommerce payment gateway for lomi.
- * Version: 6.1.0
+ * Version: 1.001.1
  * Author: lomi.
  * Author URI: https://lomi.africa
  * License: GPL-2.0+
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'WC_LOMI_MAIN_FILE', __FILE__ );
 define( 'WC_LOMI_URL', untrailingslashit( plugins_url( '/', __FILE__ ) ) );
 
-define( 'WC_LOMI_VERSION', '6.1.0' );
+define( 'WC_LOMI_VERSION', '1.001.1' );
 
 /**
  * Load plugin translations.

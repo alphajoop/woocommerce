@@ -865,6 +865,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 		$body = array(
 			'currency_code'           => strtoupper( $order->get_currency() ),
 			'amount'                  => $this->get_order_amount_for_lomi( $order ),
+			'integration_source'      => 'woocommerce',
 			'success_url'             => esc_url_raw( $callback ),
 			'cancel_url'              => esc_url_raw( $cancel ),
 			'customer_email'          => $order->get_billing_email(),
