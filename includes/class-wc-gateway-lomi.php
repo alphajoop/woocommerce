@@ -851,7 +851,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 		$url  = $this->get_lomi_api_base_url() . $path;
 		$args = array(
 			'method'  => $method,
-			'timeout' => 20,
+			'timeout' => 60,
 			'headers' => array(
 				'X-API-KEY'    => $this->secret_key,
 				'Content-Type' => 'application/json',
