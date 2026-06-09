@@ -15,14 +15,16 @@ The plugin lets merchants accept customer payments in XOF, USD, and EUR while me
 - Secure lomi. hosted checkout
 - Test and live API key configuration
 - Webhook-based payment confirmation
-- Optional checkout metadata
+- WooCommerce refunds via `POST /refunds` when the order is linked to a lomi transaction
+- WooCommerce Subscriptions: map products to lomi recurring `price_id` values for first payment
+- Payouts and balance: lomi. dashboard only
 
 ## Important Notes
 
 - This plugin does not support stores configured with currencies outside XOF, USD, and EUR unless the supported-currency filter is customized.
-- Automatic refunds from WooCommerce are not available. Process refunds from the lomi. dashboard.
-- Saved cards and automatic subscription renewals are not charged in WooCommerce with lomi. hosted checkout.
-- WooCommerce Subscriptions can still be used to manage subscription products, schedules, and renewal orders.
+- Refunds from WooCommerce require `_lomi_transaction_id` on the order (set after payment). Otherwise process refunds from the lomi. dashboard.
+- Saved cards and automatic subscription renewals are not charged in WooCommerce — recurring billing is handled by the lomi. subscription engine.
+- WooCommerce Subscriptions can manage subscription products; link each subscription product to a lomi recurring price in the product editor.
 
 ## Requirements
 
@@ -32,14 +34,28 @@ The plugin lets merchants accept customer payments in XOF, USD, and EUR while me
 
 ## Installation
 
-1. Upload the plugin folder to `wp-content/plugins/` or install it from the WordPress admin plugin screen.
-2. Activate the plugin from `WordPress Admin > Plugins`.
+Download the latest release zip:
+
+`https://github.com/lomiafrica/lomi./releases/latest/download/woo-lomi.zip`
+
+1. In WordPress admin go to **Plugins → Add New → Upload Plugin** and upload `woo-lomi.zip`.
+2. Activate the plugin.
 3. Go to `WooCommerce > Settings > Payments`.
 4. Select `lomi.`.
-5. Enable the gateway.
-6. Add your lomi. test or live API keys.
-7. Configure the webhook URL shown in the settings screen from your lomi. dashboard.
+5. Enable the gateway and review the **Setup health** panel.
+6. Add your lomi. test or live API keys and webhook signing secret.
+7. Configure the webhook URL shown in the settings screen from your lomi. dashboard (`PAYMENT_SUCCEEDED` and `REFUND_COMPLETED` recommended).
 8. Save changes.
+
+### Building a release zip locally
+
+From `apps/plugins/woo`:
+
+```bash
+npm run release
+```
+
+Produces `dist/woo-lomi-{version}.zip`. GitHub Actions publishes `woo-lomi.zip` on `woo-v*` tags.
 
 ## Configuration
 
@@ -56,7 +72,11 @@ The plugin lets merchants accept customer payments in XOF, USD, and EUR while me
 
 Configure the webhook URL shown in the lomi. settings screen from your lomi. dashboard.
 
-The webhook signing secret in WooCommerce must match the secret configured for the webhook endpoint in lomi. The plugin uses webhooks to confirm successful payments and update WooCommerce orders.
+The webhook signing secret in WooCommerce must match the secret configured for the webhook endpoint in lomi. Recommended events: `PAYMENT_SUCCEEDED`, `REFUND_COMPLETED`.
+
+### WooCommerce Subscriptions
+
+On each subscription product (or variation), set **lomi price ID** in the **lomi.** product data tab. Checkout is blocked until subscription products are linked. The first payment creates a lomi subscription; renewals are billed by lomi., not WooCommerce cron.
 
 ### Supported Currencies
 
@@ -72,6 +92,10 @@ Developers can customize the supported currency list with the `woocommerce_lomi_
 
 ## FAQ
 
+### Where do I download the plugin?
+
+From GitHub Releases: `https://github.com/lomiafrica/lomi./releases/latest/download/woo-lomi.zip`
+
 ### Which currencies does this plugin support?
 
 The plugin supports XOF, USD, and EUR by default.
@@ -84,9 +108,9 @@ Merchant revenue is credited in XOF.
 
 Yes. Customers complete payment through lomi. hosted checkout.
 
-### Are automatic WooCommerce refunds supported?
+### Are WooCommerce refunds supported?
 
-No. Process refunds from the lomi. dashboard.
+Yes, when the order stores a lomi transaction ID after payment. Otherwise refund from the lomi. dashboard.
 
 ### Are saved cards supported?
 
@@ -94,7 +118,7 @@ No. Saved card payments are not available with lomi. hosted checkout in this plu
 
 ### Are automatic subscription renewals charged by WooCommerce?
 
-No. WooCommerce Subscriptions can manage subscription products and renewal orders, but automatic renewal charges are not processed in WooCommerce through lomi. hosted checkout.
+No. Link subscription products to lomi recurring prices for the first payment. Recurring billing is handled by lomi.; WooCommerce renewal orders are placed on hold with an explanatory note.
 
 ### How do I test payments?
 
@@ -102,12 +126,17 @@ Enable test mode, enter your test API credentials and test webhook signing secre
 
 ## Changelog
 
-### 1.0.0
+### 1.002.0
 
-- Initial lomi. for WooCommerce release.
-- Support lomi. hosted checkout for XOF, USD, and EUR.
-- Credit merchant revenue in XOF.
-- Add webhook-based order confirmation.
-- Add test and live API credential settings.
-- Add WooCommerce Blocks checkout support.
-- Add French translation files.
+- GitHub Releases distribution (`woo-lomi.zip`, tag `woo-v*`)
+- Setup health panel and `GET /me` connection test
+- WooCommerce refunds via lomi. `POST /refunds`
+- Persist lomi transaction, subscription, and price IDs on orders
+- WooCommerce Subscriptions: lomi price ID product fields and checkout gating
+- `REFUND_COMPLETED` webhook order notes
+
+### 1.001.1
+
+- Hosted checkout integration for XOF, USD, and EUR
+- Webhook-based order confirmation
+- WooCommerce Blocks checkout support

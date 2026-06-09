@@ -35,11 +35,13 @@ class WC_Gateway_Lomi_Subscriptions extends WC_Gateway_Lomi {
 		$order = wc_get_order( $order_id );
 
 		// Check for trial subscription order with 0 total.
-		if ( $this->order_contains_subscription( $order ) && $order->get_total() == 0 ) {
+		if ( $this->order_contains_subscription( $order->get_id() ) && $order->get_total() == 0 ) {
 
 			$order->payment_complete();
 
-			$order->add_order_note( __( 'This subscription has a free trial, reason for the 0 amount', 'woo-lomi' ) );
+			$order->add_order_note(
+				__( 'WooCommerce free trial completed locally ($0). No lomi checkout or lomi subscription was created — recurring billing after the trial requires a paid lomi checkout or lomi catalog trial configuration.', 'woo-lomi' )
+			);
 
 			return array(
 				'result'   => 'success',
@@ -62,13 +64,10 @@ class WC_Gateway_Lomi_Subscriptions extends WC_Gateway_Lomi {
 	 */
 	public function scheduled_subscription_payment( $amount_to_charge, $renewal_order ) {
 
-		$response = $this->process_subscription_payment( $renewal_order, $amount_to_charge );
-
-		if ( is_wp_error( $response ) ) {
-			/* Translators: 1: Error message for the transaction. */
-			$renewal_order->update_status( 'failed', sprintf( __( 'lomi. Transaction Failed (%s)', 'woo-lomi' ), $response->get_error_message() ) );
-
-		}
+		$renewal_order->update_status(
+			'on-hold',
+			__( 'Renewal billing is handled by the lomi. subscription engine — not charged automatically in WooCommerce. Manage renewals in the lomi. customer portal or dashboard.', 'woo-lomi' )
+		);
 
 	}
 
@@ -84,7 +83,7 @@ class WC_Gateway_Lomi_Subscriptions extends WC_Gateway_Lomi {
 
 		return new WP_Error(
 			'lomi_subscription_renewal',
-			__( 'Automatic subscription renewals are not charged in WooCommerce with lomi. hosted checkout. Collect payment via a new checkout session or from the lomi. dashboard.', 'woo-lomi' )
+			__( 'Automatic subscription renewals are not charged in WooCommerce with lomi. Recurring billing is handled by the lomi. subscription engine after the first payment.', 'woo-lomi' )
 		);
 
 	}

@@ -213,6 +213,8 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 		// Webhook listener/API hook.
 		add_action( 'woocommerce_api_tbz_wc_lomi_webhook', array( $this, 'process_lomi_webhooks' ) );
 
+		add_action( 'woocommerce_checkout_process', array( $this, 'validate_subscription_catalog_at_checkout' ) );
+
 		// Check if the gateway can be used.
 		if ( ! $this->is_valid_for_use() ) {
 			$this->enabled = false;
@@ -277,10 +279,32 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 			return;
 		}
 
-		// Check required fields.
+		$settings_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=lomi' );
+
 		if ( ! $this->secret_key ) {
-			echo '<div class="error"><p>' . sprintf( esc_html__( 'Please enter your lomi. secret API key %shere%s to use this gateway.', 'woo-lomi' ), '<a href="' . esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=lomi' ) ) . '">', '</a>' ) . '</p></div>';
+			echo '<div class="error"><p>' . sprintf( esc_html__( 'Please enter your lomi. secret API key %shere%s to use this gateway.', 'woo-lomi' ), '<a href="' . esc_url( $settings_url ) . '">', '</a>' ) . '</p></div>';
 			return;
+		}
+
+		if ( ! $this->webhook_secret ) {
+			echo '<div class="notice notice-warning"><p>' . sprintf(
+				/* translators: %s: settings URL */
+				esc_html__( 'lomi. is enabled but no webhook signing secret is configured. Add one %shere%s and register the webhook URL in your lomi. dashboard.', 'woo-lomi' ),
+				'<a href="' . esc_url( $settings_url ) . '">' . esc_html__( 'in gateway settings', 'woo-lomi' ) . '</a>'
+			) . '</p></div>';
+		}
+
+		if ( ! is_ssl() ) {
+			echo '<div class="notice notice-warning"><p>' . esc_html__( 'lomi. recommends HTTPS for production checkout and webhooks. Your site is not served over SSL.', 'woo-lomi' ) . '</p></div>';
+		}
+
+		if ( $this->testmode ) {
+			echo '<div class="notice notice-info"><p><strong>' . esc_html__( 'lomi. test mode is active.', 'woo-lomi' ) . '</strong> ' . sprintf(
+				/* translators: %s: settings URL */
+				esc_html__( 'Sandbox API keys are in use. Disable test mode %swhen you go live%s.', 'woo-lomi' ),
+				'<a href="' . esc_url( $settings_url ) . '">',
+				'</a>'
+			) . '</p></div>';
 		}
 
 	}
@@ -337,9 +361,23 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 
 		if ( $this->is_valid_for_use() ) {
 
+			$this->render_setup_health_panel();
+
 			echo '<table class="form-table">';
 			$this->generate_settings_html();
 			echo '</table>';
+
+			echo '<p class="description">';
+			echo esc_html__( 'Recommended webhook events: PAYMENT_SUCCEEDED and REFUND_COMPLETED.', 'woo-lomi' );
+			echo ' ';
+			printf(
+				wp_kses_post( __( 'Configure webhooks in your <a href="%1$s" target="_blank" rel="noopener noreferrer">lomi. dashboard</a>. Payouts and balance stay in the dashboard.', 'woo-lomi' ) ),
+				'https://dashboard.lomi.africa/settings/webhooks'
+			);
+			echo '</p>';
+			echo '<p class="description">';
+			echo esc_html__( 'WooCommerce Subscriptions: map each subscription product to a lomi recurring price in the product editor. Recurring billing is handled by lomi.; WooCommerce does not auto-charge renewals.', 'woo-lomi' );
+			echo '</p>';
 
 		} else {
 			?>
@@ -743,6 +781,12 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 			return;
 		}
 
+		$mapping_error = $this->validate_subscription_lomi_mapping_for_order( $order );
+		if ( is_wp_error( $mapping_error ) ) {
+			wc_add_notice( $mapping_error->get_error_message(), 'error' );
+			return;
+		}
+
 		$session = $this->create_lomi_checkout_session( $order );
 
 		if ( is_wp_error( $session ) ) {
@@ -1014,6 +1058,533 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Block checkout when subscription products lack lomi price mapping.
+	 */
+	public function validate_subscription_catalog_at_checkout() {
+		if ( ! $this->is_available() ) {
+			return;
+		}
+
+		$chosen = WC()->session ? WC()->session->get( 'chosen_payment_method' ) : '';
+		if ( $chosen && $chosen !== $this->id ) {
+			return;
+		}
+
+		if ( ! function_exists( 'wcs_cart_contains_subscription' ) || ! wcs_cart_contains_subscription() ) {
+			return;
+		}
+
+		foreach ( WC()->cart->get_cart() as $cart_item ) {
+			$product = isset( $cart_item['data'] ) ? $cart_item['data'] : null;
+			if ( ! $product || ! class_exists( 'WC_Gateway_Lomi_Product_Admin' ) ) {
+				continue;
+			}
+			if ( ! WC_Gateway_Lomi_Product_Admin::product_is_subscription_type( $product ) ) {
+				wc_add_notice(
+					__( 'Split subscription and one-time products into separate orders when paying with lomi.', 'woo-lomi' ),
+					'error'
+				);
+				return;
+			}
+			if ( ! WC_Gateway_Lomi_Product_Admin::get_product_lomi_price_id( $product ) ) {
+				wc_add_notice(
+					sprintf(
+						/* translators: %s: product name */
+						__( 'Link "%s" to a lomi recurring price in the product editor before checkout.', 'woo-lomi' ),
+						$product->get_name()
+					),
+					'error'
+				);
+			}
+		}
+	}
+
+	/**
+	 * Setup health checks for the gateway settings screen.
+	 *
+	 * @return array<string, array{label:string,status:string,message:string}>
+	 */
+	protected function get_setup_health_checks() {
+		$checks = array();
+
+		$checks['secret_key'] = array(
+			'label'   => __( 'API secret key', 'woo-lomi' ),
+			'status'  => $this->secret_key ? 'ok' : 'error',
+			'message' => $this->secret_key ? __( 'Configured', 'woo-lomi' ) : __( 'Missing — add your test or live secret key below.', 'woo-lomi' ),
+		);
+
+		$checks['currency'] = array(
+			'label'   => __( 'Store currency', 'woo-lomi' ),
+			'status'  => $this->is_valid_for_use() ? 'ok' : 'error',
+			'message' => $this->is_valid_for_use()
+				? strtoupper( get_woocommerce_currency() )
+				: __( 'Must be XOF, USD, or EUR.', 'woo-lomi' ),
+		);
+
+		$checks['webhook_secret'] = array(
+			'label'   => __( 'Webhook signing secret', 'woo-lomi' ),
+			'status'  => $this->webhook_secret ? 'ok' : 'warning',
+			'message' => $this->webhook_secret ? __( 'Configured', 'woo-lomi' ) : __( 'Recommended — required to verify PAYMENT_SUCCEEDED webhooks.', 'woo-lomi' ),
+		);
+
+		$checks['https'] = array(
+			'label'   => __( 'HTTPS', 'woo-lomi' ),
+			'status'  => is_ssl() ? 'ok' : 'warning',
+			'message' => is_ssl() ? __( 'Enabled', 'woo-lomi' ) : __( 'Not detected — use HTTPS in production.', 'woo-lomi' ),
+		);
+
+		$checks['test_mode'] = array(
+			'label'   => __( 'Test mode', 'woo-lomi' ),
+			'status'  => $this->testmode ? 'warning' : 'ok',
+			'message' => $this->testmode ? __( 'Sandbox API active', 'woo-lomi' ) : __( 'Live API active', 'woo-lomi' ),
+		);
+
+		if ( $this->secret_key ) {
+			$connection = $this->test_lomi_api_connection();
+			$checks['api_connection'] = array(
+				'label'   => __( 'API connection', 'woo-lomi' ),
+				'status'  => is_wp_error( $connection ) ? 'error' : 'ok',
+				'message' => is_wp_error( $connection ) ? $connection->get_error_message() : __( 'GET /me succeeded', 'woo-lomi' ),
+			);
+		}
+
+		return $checks;
+	}
+
+	/**
+	 * Render setup health table on gateway settings.
+	 */
+	protected function render_setup_health_panel() {
+		$checks = $this->get_setup_health_checks();
+		echo '<h3>' . esc_html__( 'Setup health', 'woo-lomi' ) . '</h3>';
+		echo '<table class="widefat striped" style="max-width:720px;margin-bottom:1.5em;">';
+		echo '<thead><tr><th>' . esc_html__( 'Check', 'woo-lomi' ) . '</th><th>' . esc_html__( 'Status', 'woo-lomi' ) . '</th><th>' . esc_html__( 'Details', 'woo-lomi' ) . '</th></tr></thead><tbody>';
+		foreach ( $checks as $check ) {
+			$status_label = __( 'OK', 'woo-lomi' );
+			if ( 'error' === $check['status'] ) {
+				$status_label = __( 'Action required', 'woo-lomi' );
+			} elseif ( 'warning' === $check['status'] ) {
+				$status_label = __( 'Warning', 'woo-lomi' );
+			}
+			echo '<tr>';
+			echo '<td>' . esc_html( $check['label'] ) . '</td>';
+			echo '<td>' . esc_html( $status_label ) . '</td>';
+			echo '<td>' . esc_html( $check['message'] ) . '</td>';
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+	}
+
+	/**
+	 * Verify API credentials with GET /me.
+	 *
+	 * @return true|WP_Error
+	 */
+	protected function test_lomi_api_connection() {
+		$cache_key = 'wc_lomi_me_' . md5( (string) $this->secret_key . ( $this->testmode ? 'test' : 'live' ) );
+		$cached    = get_transient( $cache_key );
+		if ( 'ok' === $cached ) {
+			return true;
+		}
+		if ( is_string( $cached ) && 0 === strpos( $cached, 'err:' ) ) {
+			return new WP_Error( 'lomi_me', substr( $cached, 4 ) );
+		}
+
+		$response = $this->lomi_api_request( 'GET', '/me', null );
+		if ( is_wp_error( $response ) ) {
+			set_transient( $cache_key, 'err:' . $response->get_error_message(), 5 * MINUTE_IN_SECONDS );
+			return $response;
+		}
+
+		set_transient( $cache_key, 'ok', 5 * MINUTE_IN_SECONDS );
+		return true;
+	}
+
+	/**
+	 * Whether the order contains a new subscription purchase (not a renewal).
+	 *
+	 * @param WC_Order $order Order.
+	 * @return bool
+	 */
+	protected function order_contains_new_subscription( $order ) {
+		if ( ! function_exists( 'wcs_order_contains_subscription' ) ) {
+			return false;
+		}
+
+		return wcs_order_contains_subscription( $order, array( 'parent', 'resubscribe', 'switch' ) );
+	}
+
+	/**
+	 * Validate subscription catalog mapping for an order.
+	 *
+	 * @param WC_Order $order Order.
+	 * @return true|WP_Error
+	 */
+	protected function validate_subscription_lomi_mapping_for_order( $order ) {
+		if ( ! $this->order_contains_new_subscription( $order ) || ! class_exists( 'WC_Gateway_Lomi_Product_Admin' ) ) {
+			return true;
+		}
+
+		$subscription_lines = 0;
+		$other_lines        = 0;
+
+		foreach ( $order->get_items() as $item ) {
+			if ( ! $item instanceof WC_Order_Item_Product ) {
+				continue;
+			}
+			$product = $item->get_product();
+			if ( ! $product ) {
+				continue;
+			}
+			if ( WC_Gateway_Lomi_Product_Admin::product_is_subscription_type( $product ) ) {
+				++$subscription_lines;
+				if ( ! WC_Gateway_Lomi_Product_Admin::get_product_lomi_price_id( $product ) ) {
+					return new WP_Error(
+						'lomi_subscription_unmapped',
+						sprintf(
+							/* translators: %s: product name */
+							__( 'Link "%s" to a lomi recurring price in the product editor before checkout.', 'woo-lomi' ),
+							$product->get_name()
+						)
+					);
+				}
+			} else {
+				++$other_lines;
+			}
+		}
+
+		if ( $subscription_lines > 0 && $other_lines > 0 ) {
+			return new WP_Error(
+				'lomi_mixed_cart',
+				__( 'Split subscription and one-time products into separate orders when paying with lomi.', 'woo-lomi' )
+			);
+		}
+
+		if ( $subscription_lines > 1 ) {
+			return new WP_Error(
+				'lomi_multi_subscription',
+				__( 'Checkout one subscription product per order when paying with lomi.', 'woo-lomi' )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Resolve catalog checkout payload for a single subscription line.
+	 *
+	 * @param WC_Order $order Order.
+	 * @return array|null|WP_Error
+	 */
+	protected function resolve_subscription_catalog_checkout( $order ) {
+		$validation = $this->validate_subscription_lomi_mapping_for_order( $order );
+		if ( is_wp_error( $validation ) ) {
+			return $validation;
+		}
+
+		if ( ! $this->order_contains_new_subscription( $order ) || ! class_exists( 'WC_Gateway_Lomi_Product_Admin' ) ) {
+			return null;
+		}
+
+		foreach ( $order->get_items() as $item ) {
+			if ( ! $item instanceof WC_Order_Item_Product ) {
+				continue;
+			}
+			$product = $item->get_product();
+			if ( ! $product || ! WC_Gateway_Lomi_Product_Admin::product_is_subscription_type( $product ) ) {
+				continue;
+			}
+
+			return array(
+				'price_id'   => WC_Gateway_Lomi_Product_Admin::get_product_lomi_price_id( $product ),
+				'product_id' => WC_Gateway_Lomi_Product_Admin::get_product_lomi_product_id( $product ),
+				'quantity'   => max( 1, (int) $item->get_quantity() ),
+			);
+		}
+
+		return null;
+	}
+
+	/**
+	 * Extract transaction ID from webhook or API payload.
+	 *
+	 * @param object $data Payload object.
+	 * @return string
+	 */
+	protected function extract_lomi_transaction_id_from_payload( $data ) {
+		if ( ! is_object( $data ) ) {
+			return '';
+		}
+		if ( ! empty( $data->transaction_id ) ) {
+			return sanitize_text_field( (string) $data->transaction_id );
+		}
+		if ( ! empty( $data->id ) && empty( $data->checkout_session_id ) ) {
+			return sanitize_text_field( (string) $data->id );
+		}
+		if ( ! empty( $data->id ) ) {
+			return sanitize_text_field( (string) $data->id );
+		}
+		return '';
+	}
+
+	/**
+	 * Persist lomi IDs on the Woo order for refunds and subscriptions.
+	 *
+	 * @param WC_Order   $order        Order.
+	 * @param object|null $session_data Checkout session.
+	 * @param object|null $webhook_data Webhook data payload.
+	 */
+	protected function persist_lomi_payment_meta( $order, $session_data = null, $webhook_data = null ) {
+		if ( ! $order ) {
+			return;
+		}
+
+		if ( $webhook_data ) {
+			$transaction_id = $this->extract_lomi_transaction_id_from_payload( $webhook_data );
+			if ( $transaction_id && ! $order->get_meta( '_lomi_transaction_id' ) ) {
+				$order->update_meta_data( '_lomi_transaction_id', $transaction_id );
+			}
+			if ( ! empty( $webhook_data->checkout_session_id ) && ! $order->get_meta( '_lomi_checkout_session_id' ) ) {
+				$order->update_meta_data( '_lomi_checkout_session_id', sanitize_text_field( (string) $webhook_data->checkout_session_id ) );
+			}
+			if ( ! empty( $webhook_data->subscription_id ) && ! $order->get_meta( '_lomi_subscription_id' ) ) {
+				$order->update_meta_data( '_lomi_subscription_id', sanitize_text_field( (string) $webhook_data->subscription_id ) );
+			}
+			if ( ! empty( $webhook_data->price_id ) && ! $order->get_meta( '_lomi_price_id' ) ) {
+				$order->update_meta_data( '_lomi_price_id', sanitize_text_field( (string) $webhook_data->price_id ) );
+			}
+			if ( ! $order->get_meta( '_lomi_paid_amount' ) ) {
+				if ( isset( $webhook_data->gross_amount ) ) {
+					$order->update_meta_data( '_lomi_paid_amount', (int) round( (float) $webhook_data->gross_amount ) );
+				} elseif ( isset( $webhook_data->amount ) ) {
+					$order->update_meta_data( '_lomi_paid_amount', (int) round( (float) $webhook_data->amount ) );
+				}
+			}
+		}
+
+		if ( $session_data ) {
+			if ( ! empty( $session_data->subscription_id ) && ! $order->get_meta( '_lomi_subscription_id' ) ) {
+				$order->update_meta_data( '_lomi_subscription_id', sanitize_text_field( (string) $session_data->subscription_id ) );
+			}
+			if ( ! empty( $session_data->product_id ) && ! $order->get_meta( '_lomi_product_id' ) ) {
+				$order->update_meta_data( '_lomi_product_id', sanitize_text_field( (string) $session_data->product_id ) );
+			}
+			if ( ! empty( $session_data->price_id ) && ! $order->get_meta( '_lomi_price_id' ) ) {
+				$order->update_meta_data( '_lomi_price_id', sanitize_text_field( (string) $session_data->price_id ) );
+			}
+			if ( isset( $session_data->amount ) && ! $order->get_meta( '_lomi_paid_amount' ) ) {
+				$order->update_meta_data( '_lomi_paid_amount', (int) round( (float) $session_data->amount ) );
+			}
+		}
+
+		if ( ! $order->get_meta( '_lomi_transaction_id' ) ) {
+			$resolved = $this->resolve_lomi_transaction_id_for_order( $order );
+			if ( $resolved ) {
+				$order->update_meta_data( '_lomi_transaction_id', $resolved );
+			}
+		}
+
+		$order->save();
+	}
+
+	/**
+	 * Find a completed lomi transaction for a Woo order via metadata.
+	 *
+	 * @param WC_Order $order Order.
+	 * @return string Transaction UUID or empty.
+	 */
+	protected function resolve_lomi_transaction_id_for_order( $order ) {
+		$existing = $order->get_meta( '_lomi_transaction_id' );
+		if ( $existing ) {
+			return (string) $existing;
+		}
+
+		$order_id = (string) $order->get_id();
+		$resp     = $this->lomi_api_request( 'GET', '/transactions?status=completed&page=1&pageSize=25', null );
+		if ( is_wp_error( $resp ) ) {
+			return '';
+		}
+
+		$rows = $this->lomi_unwrap_data( $resp );
+		if ( ! is_array( $rows ) ) {
+			if ( is_object( $rows ) ) {
+				$rows = array( $rows );
+			} else {
+				return '';
+			}
+		}
+
+		$session_id = (string) $order->get_meta( '_lomi_checkout_session_id' );
+
+		foreach ( $rows as $row ) {
+			if ( ! is_object( $row ) || empty( $row->transaction_id ) ) {
+				continue;
+			}
+			$metadata = isset( $row->metadata ) ? $row->metadata : null;
+			if ( ! is_object( $metadata ) ) {
+				continue;
+			}
+			if ( isset( $metadata->wc_order_id ) && (string) $metadata->wc_order_id === $order_id ) {
+				return sanitize_text_field( (string) $row->transaction_id );
+			}
+			if ( isset( $metadata->order_id ) && (string) $metadata->order_id === $order_id ) {
+				return sanitize_text_field( (string) $row->transaction_id );
+			}
+			if ( $session_id && isset( $metadata->checkout_session_id ) && (string) $metadata->checkout_session_id === $session_id ) {
+				return sanitize_text_field( (string) $row->transaction_id );
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Find Woo order by stored lomi transaction ID.
+	 *
+	 * @param string $transaction_id Transaction UUID.
+	 * @return WC_Order|false
+	 */
+	protected function find_order_by_lomi_transaction_id( $transaction_id ) {
+		$transaction_id = sanitize_text_field( (string) $transaction_id );
+		if ( ! $transaction_id ) {
+			return false;
+		}
+
+		$orders = wc_get_orders(
+			array(
+				'limit'        => 1,
+				'meta_key'     => '_lomi_transaction_id',
+				'meta_value'   => $transaction_id,
+				'meta_compare' => '=',
+				'return'       => 'objects',
+			)
+		);
+
+		return ! empty( $orders ) ? $orders[0] : false;
+	}
+
+	/**
+	 * Convert a major-unit amount to lomi. API units.
+	 *
+	 * @param float  $amount   Amount in major units (e.g. 9.99 USD).
+	 * @param string $currency Currency code.
+	 * @return int
+	 */
+	protected function amount_to_lomi_units( $amount, $currency ) {
+		$currency = strtoupper( (string) $currency );
+		$amount   = (float) $amount;
+
+		if ( 'XOF' === $currency ) {
+			return (int) round( $amount );
+		}
+
+		$decimals = $this->get_currency_minor_unit_decimals( $currency );
+		return (int) round( $amount * ( 10 ** $decimals ) );
+	}
+
+	/**
+	 * Format refund amount for lomi. API units.
+	 *
+	 * @param float  $amount   Refund amount in major units.
+	 * @param string $currency Currency code.
+	 * @return int
+	 */
+	protected function get_refund_amount_for_lomi( $amount, $currency ) {
+		return $this->amount_to_lomi_units( $amount, $currency );
+	}
+
+	/**
+	 * Whether checkout used a mapped lomi catalog price (subscription).
+	 *
+	 * @param WC_Order    $order        Order.
+	 * @param object|null $session_data Checkout session.
+	 * @return bool
+	 */
+	protected function order_uses_lomi_catalog_checkout( $order, $session_data = null ) {
+		if ( $order->get_meta( '_lomi_price_id' ) ) {
+			return true;
+		}
+
+		if ( $session_data && ! empty( $session_data->price_id ) && $this->order_contains_new_subscription( $order ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Subscription line total in lomi. API units (excludes shipping/tax).
+	 *
+	 * @param WC_Order $order Order.
+	 * @return int
+	 */
+	protected function get_subscription_line_total_for_lomi( $order ) {
+		if ( ! class_exists( 'WC_Gateway_Lomi_Product_Admin' ) ) {
+			return 0;
+		}
+
+		$currency = strtoupper( $order->get_currency() );
+		$total    = 0.0;
+
+		foreach ( $order->get_items() as $item ) {
+			if ( ! $item instanceof WC_Order_Item_Product ) {
+				continue;
+			}
+
+			$product = $item->get_product();
+			if ( ! $product || ! WC_Gateway_Lomi_Product_Admin::product_is_subscription_type( $product ) ) {
+				continue;
+			}
+
+			$total += (float) $item->get_total();
+		}
+
+		return $this->amount_to_lomi_units( $total, $currency );
+	}
+
+	/**
+	 * Expected paid amount for verifying a completed checkout session.
+	 *
+	 * Catalog subscription sessions charge the lomi price only, not Woo shipping/tax.
+	 *
+	 * @param WC_Order    $order        Order.
+	 * @param object|null $session_data Checkout session.
+	 * @return int
+	 */
+	protected function get_expected_lomi_session_amount( $order, $session_data = null ) {
+		if ( $this->order_uses_lomi_catalog_checkout( $order, $session_data ) ) {
+			$line_total = $this->get_subscription_line_total_for_lomi( $order );
+			if ( $line_total > 0 ) {
+				return $line_total;
+			}
+		}
+
+		return $this->get_order_amount_for_lomi( $order );
+	}
+
+	/**
+	 * Maximum refundable amount in lomi. API units for this order.
+	 *
+	 * @param WC_Order $order Order.
+	 * @return int
+	 */
+	protected function get_refundable_lomi_amount_ceiling( $order ) {
+		$paid = $order->get_meta( '_lomi_paid_amount' );
+		if ( '' !== $paid && null !== $paid ) {
+			return max( 0, (int) $paid );
+		}
+
+		if ( $this->order_uses_lomi_catalog_checkout( $order ) ) {
+			$line_total = $this->get_subscription_line_total_for_lomi( $order );
+			if ( $line_total > 0 ) {
+				return $line_total;
+			}
+		}
+
+		return $this->get_order_amount_for_lomi( $order );
+	}
+
+	/**
 	 * Create checkout session on lomi.
 	 *
 	 * @param WC_Order $order Order.
@@ -1045,6 +1616,25 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 			'title'                   => sprintf( __( 'Order %s', 'woo-lomi' ), $order->get_order_number() ),
 			'metadata'                => $this->build_lomi_session_metadata( $order ),
 		);
+
+		$catalog = $this->resolve_subscription_catalog_checkout( $order );
+		if ( is_wp_error( $catalog ) ) {
+			return $catalog;
+		}
+		if ( is_array( $catalog ) && ! empty( $catalog['price_id'] ) ) {
+			$body['price_id'] = $catalog['price_id'];
+			$body['quantity'] = $catalog['quantity'];
+			if ( ! empty( $catalog['product_id'] ) ) {
+				$body['product_id'] = $catalog['product_id'];
+			}
+			unset( $body['amount'] );
+			$order->update_meta_data( '_lomi_price_id', $catalog['price_id'] );
+			if ( ! empty( $catalog['product_id'] ) ) {
+				$order->update_meta_data( '_lomi_product_id', $catalog['product_id'] );
+			}
+			$order->save();
+		}
+
 		$resp = $this->lomi_api_request( 'POST', '/checkout-sessions', $body );
 		if ( is_wp_error( $resp ) ) {
 			$order->add_order_note(
@@ -1124,6 +1714,9 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 		$raw_status  = strtolower( (string) ( $session_data->status ?? '' ) );
 
 		if ( in_array( $order->get_status(), array( 'processing', 'completed' ), true ) ) {
+			if ( $this->lomi_session_is_paid( $session_data->status ?? '' ) ) {
+				$this->persist_lomi_payment_meta( $order, $session_data, null );
+			}
 			return;
 		}
 
@@ -1152,14 +1745,17 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 			return;
 		}
 
-		$expected = $this->get_order_amount_for_lomi( $order );
-		$paid     = isset( $session_data->amount ) ? (int) round( (float) $session_data->amount ) : 0;
+		$uses_catalog = $this->order_uses_lomi_catalog_checkout( $order, $session_data );
+		$expected     = $this->get_expected_lomi_session_amount( $order, $session_data );
+		$paid         = isset( $session_data->amount ) ? (int) round( (float) $session_data->amount ) : 0;
 		if ( $paid !== $expected ) {
 			$order->update_status(
 				'on-hold',
 				sprintf(
 					/* translators: 1: expected amount, 2: session amount */
-					__( 'lomi.: amount mismatch (order expects %1$s; session has %2$s).', 'woo-lomi' ),
+					$uses_catalog
+						? __( 'lomi.: subscription line amount mismatch (expected %1$s; session has %2$s). Align Woo subscription price with the lomi recurring price.', 'woo-lomi' )
+						: __( 'lomi.: amount mismatch (order expects %1$s; session has %2$s).', 'woo-lomi' ),
 					$expected,
 					$paid
 				)
@@ -1174,20 +1770,31 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 		$currency_order = strtoupper( $order->get_currency() );
 		$currency_sess  = isset( $session_data->currency_code ) ? strtoupper( (string) $session_data->currency_code ) : '';
 		if ( $currency_sess && $currency_sess !== $currency_order ) {
-			$order->update_status(
-				'on-hold',
-				sprintf(
-					/* translators: 1: order currency, 2: session currency */
-					__( 'lomi.: currency mismatch (order %1$s vs session %2$s).', 'woo-lomi' ),
-					$currency_order,
-					$currency_sess
-				)
-			);
-			$order->save();
-			if ( $notify_customer ) {
-				wc_add_notice( __( 'Currency mismatch while verifying payment with lomi.. Please contact the store.', 'woo-lomi' ), 'error' );
+			if ( $uses_catalog ) {
+				$order->add_order_note(
+					sprintf(
+						/* translators: 1: session currency, 2: store currency */
+						__( 'lomi.: catalog checkout currency (%1$s) differs from store currency (%2$s); verified against lomi catalog price.', 'woo-lomi' ),
+						$currency_sess,
+						$currency_order
+					)
+				);
+			} else {
+				$order->update_status(
+					'on-hold',
+					sprintf(
+						/* translators: 1: order currency, 2: session currency */
+						__( 'lomi.: currency mismatch (order %1$s vs session %2$s).', 'woo-lomi' ),
+						$currency_order,
+						$currency_sess
+					)
+				);
+				$order->save();
+				if ( $notify_customer ) {
+					wc_add_notice( __( 'Currency mismatch while verifying payment with lomi.. Please contact the store.', 'woo-lomi' ), 'error' );
+				}
+				return;
 			}
-			return;
 		}
 
 		$ref = $session_ref ? $session_ref : (string) $order->get_id();
@@ -1196,7 +1803,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 		if ( $this->is_autocomplete_order_enabled( $order ) ) {
 			$order->update_status( 'completed' );
 		}
-		$order->save();
+		$this->persist_lomi_payment_meta( $order, $session_data, null );
 		if ( function_exists( 'WC' ) && WC()->cart ) {
 			WC()->cart->empty_cart();
 		}
@@ -1402,11 +2009,6 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 			exit;
 		}
 
-		if ( 'PAYMENT_SUCCEEDED' !== $event ) {
-			status_header( 200 );
-			exit;
-		}
-
 		$payload = json_decode( $raw );
 		$data    = is_object( $payload ) && isset( $payload->data ) ? $payload->data : null;
 
@@ -1415,30 +2017,25 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 			exit;
 		}
 
-		$order_id = 0;
-		if ( isset( $data->metadata->wc_order_id ) ) {
-			$order_id = absint( $data->metadata->wc_order_id );
-		}
-		if ( ! $order_id && ! empty( $data->checkout_session_id ) ) {
-			$orders = wc_get_orders(
-				array(
-					'limit'        => 1,
-					'meta_key'     => '_lomi_checkout_session_id',
-					'meta_value'   => $data->checkout_session_id,
-					'meta_compare' => '=',
-					'return'       => 'objects',
-				)
-			);
-			if ( ! empty( $orders ) ) {
-				$order_id = $orders[0]->get_id();
-			}
+		if ( 'REFUND_COMPLETED' === $event ) {
+			$this->handle_lomi_refund_completed_webhook( $data );
+			status_header( 200 );
+			exit;
 		}
 
-		$order = wc_get_order( $order_id );
+		if ( 'PAYMENT_SUCCEEDED' !== $event ) {
+			status_header( 200 );
+			exit;
+		}
+
+		$order = $this->resolve_order_from_lomi_webhook_data( $data );
 		if ( ! $order ) {
 			status_header( 200 );
 			exit;
 		}
+
+		$this->persist_lomi_payment_meta( $order, null, $data );
+
 		$session_id = isset( $data->checkout_session_id ) ? (string) $data->checkout_session_id : $order->get_meta( '_lomi_checkout_session_id' );
 		$session    = $session_id ? $this->fetch_lomi_checkout_session( $session_id ) : false;
 		if ( ! $session ) {
@@ -1606,10 +2203,161 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 	 * @return bool|WP_Error
 	 */
 	public function process_refund( $order_id, $amount = null, $reason = '' ) {
-		return new WP_Error(
-			'lomi_refund',
-			__( 'Automatic refunds from WooCommerce are not available for lomi.. Process refunds in your lomi. dashboard.', 'woo-lomi' )
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return new WP_Error( 'lomi_refund', __( 'Order not found.', 'woo-lomi' ) );
+		}
+
+		$transaction_id = $order->get_meta( '_lomi_transaction_id' );
+		if ( ! $transaction_id ) {
+			$transaction_id = $this->resolve_lomi_transaction_id_for_order( $order );
+			if ( $transaction_id ) {
+				$order->update_meta_data( '_lomi_transaction_id', $transaction_id );
+				$order->save();
+			}
+		}
+
+		if ( ! $transaction_id ) {
+			return new WP_Error(
+				'lomi_refund',
+				__( 'This payment is not linked to a lomi transaction. Process the refund from your lomi. dashboard.', 'woo-lomi' )
+			);
+		}
+
+		$ceiling_units = $this->get_refundable_lomi_amount_ceiling( $order );
+		if ( $ceiling_units <= 0 ) {
+			$ceiling_units = $this->get_order_amount_for_lomi( $order );
+		}
+
+		if ( null === $amount || '' === $amount ) {
+			$refund_units = $ceiling_units;
+		} else {
+			$refund_units = $this->get_refund_amount_for_lomi( $amount, $order->get_currency() );
+			if ( $refund_units > $ceiling_units ) {
+				$refund_units = $ceiling_units;
+			}
+		}
+
+		if ( $refund_units <= 0 ) {
+			return new WP_Error( 'lomi_refund', __( 'Refund amount must be greater than zero.', 'woo-lomi' ) );
+		}
+
+		$refund_type = ( $refund_units >= $ceiling_units ) ? 'full' : 'partial';
+
+		$body = array(
+			'transaction_id' => $transaction_id,
+			'amount'         => $refund_units,
+			'refund_type'    => $refund_type,
 		);
+		if ( $reason ) {
+			$body['reason'] = $reason;
+		}
+
+		$response = $this->lomi_api_request( 'POST', '/refunds', $body );
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$refund_row = $this->lomi_unwrap_data( $response );
+		$refund_id  = is_object( $refund_row ) && ! empty( $refund_row->refund_id ) ? (string) $refund_row->refund_id : '';
+		$order->add_order_note(
+			$refund_id
+				? sprintf(
+					/* translators: 1: refund id, 2: refund type */
+					__( 'lomi. refund initiated (%1$s, %2$s).', 'woo-lomi' ),
+					$refund_id,
+					$refund_type
+				)
+				: sprintf(
+					/* translators: %s: refund type */
+					__( 'lomi. refund initiated (%s).', 'woo-lomi' ),
+					$refund_type
+				)
+		);
+		$order->save();
+
+		return true;
+	}
+
+	/**
+	 * Resolve Woo order from webhook transaction payload.
+	 *
+	 * @param object $data Webhook data.
+	 * @return WC_Order|false
+	 */
+	protected function resolve_order_from_lomi_webhook_data( $data ) {
+		$order_id = 0;
+		if ( isset( $data->metadata->wc_order_id ) ) {
+			$order_id = absint( $data->metadata->wc_order_id );
+		}
+		if ( ! $order_id && ! empty( $data->checkout_session_id ) ) {
+			$orders = wc_get_orders(
+				array(
+					'limit'        => 1,
+					'meta_key'     => '_lomi_checkout_session_id',
+					'meta_value'   => $data->checkout_session_id,
+					'meta_compare' => '=',
+					'return'       => 'objects',
+				)
+			);
+			if ( ! empty( $orders ) ) {
+				$order_id = $orders[0]->get_id();
+			}
+		}
+
+		if ( ! $order_id ) {
+			$transaction_id = $this->extract_lomi_transaction_id_from_payload( $data );
+			if ( $transaction_id ) {
+				$order = $this->find_order_by_lomi_transaction_id( $transaction_id );
+				if ( $order ) {
+					return $order;
+				}
+			}
+			return false;
+		}
+
+		$order = wc_get_order( $order_id );
+		return $order ? $order : false;
+	}
+
+	/**
+	 * Add order note when refund completes in lomi. dashboard.
+	 *
+	 * @param object $data Webhook data.
+	 */
+	protected function handle_lomi_refund_completed_webhook( $data ) {
+		$transaction_id = '';
+		if ( ! empty( $data->transaction_id ) ) {
+			$transaction_id = sanitize_text_field( (string) $data->transaction_id );
+		} elseif ( ! empty( $data->id ) ) {
+			$transaction_id = sanitize_text_field( (string) $data->id );
+		}
+
+		$order = $this->resolve_order_from_lomi_webhook_data( $data );
+		if ( ! $order && $transaction_id ) {
+			$order = $this->find_order_by_lomi_transaction_id( $transaction_id );
+		}
+		if ( ! $order ) {
+			return;
+		}
+
+		$refund_id = ! empty( $data->refund_id ) ? sanitize_text_field( (string) $data->refund_id ) : '';
+		$note_key  = $refund_id ? 'lomi_refund_note_' . $refund_id : 'lomi_refund_note_generic';
+		if ( $order->get_meta( $note_key ) ) {
+			return;
+		}
+
+		$order->add_order_note(
+			$refund_id
+				? sprintf(
+					/* translators: %s: lomi refund id */
+					__( 'lomi. refund completed (refund %s). Initiated outside WooCommerce if no matching Woo refund exists.', 'woo-lomi' ),
+					$refund_id
+				)
+				: __( 'lomi. refund completed. Initiated outside WooCommerce if no matching Woo refund exists.', 'woo-lomi' )
+		);
+		$order->update_meta_data( $note_key, '1' );
+		$order->save();
 	}
 
 	/**
