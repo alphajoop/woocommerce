@@ -1878,6 +1878,43 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Fetch checkout session with short retries to absorb hosted-checkout completion lag.
+	 *
+	 * @param string $session_id UUID.
+	 * @param int    $max_attempts Maximum attempts.
+	 * @return object|false
+	 */
+	protected function fetch_lomi_checkout_session_with_retry( $session_id, $max_attempts = 5 ) {
+		$max_attempts = max( 1, (int) $max_attempts );
+		$last         = false;
+
+		for ( $attempt = 1; $attempt <= $max_attempts; $attempt++ ) {
+			$last = $this->fetch_lomi_checkout_session( $session_id );
+			if ( ! $last ) {
+				if ( $attempt < $max_attempts ) {
+					usleep( 500000 * $attempt );
+				}
+				continue;
+			}
+
+			if ( $this->lomi_session_is_paid( $last->status ?? '' ) ) {
+				return $last;
+			}
+
+			$raw_status = strtolower( (string) ( $last->status ?? '' ) );
+			if ( in_array( $raw_status, array( 'expired', 'canceled', 'cancelled' ), true ) ) {
+				return $last;
+			}
+
+			if ( $attempt < $max_attempts ) {
+				usleep( 500000 * $attempt );
+			}
+		}
+
+		return $last;
+	}
+
+	/**
 	 * Whether session status means paid (hosted checkout uses checkout_session_status.completed).
 	 *
 	 * @param string $status Status.
@@ -2166,7 +2203,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 			wp_safe_redirect( $order->get_checkout_payment_url() );
 			exit;
 		}
-		$data = $this->fetch_lomi_checkout_session( $session_id );
+		$data = $this->fetch_lomi_checkout_session_with_retry( $session_id );
 		if ( ! $data ) {
 			$order->add_order_note( __( 'lomi.: could not fetch checkout session from API after customer return.', 'woo-lomi' ) );
 			$order->save();
@@ -2182,11 +2219,28 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 			exit;
 		}
 
-		$this->abandon_lomi_checkout_order(
-			$order,
-			__( 'lomi.: hosted checkout returned without a completed payment.', 'woo-lomi' )
-		);
-		wp_safe_redirect( wc_get_checkout_url() );
+		$raw_status = strtolower( (string) ( $data->status ?? '' ) );
+		if ( 'expired' === $raw_status ) {
+			$this->abandon_lomi_checkout_order(
+				$order,
+				__( 'lomi.: checkout session expired before payment was confirmed.', 'woo-lomi' )
+			);
+			wp_safe_redirect( wc_get_checkout_url() );
+			exit;
+		}
+
+		if ( $order->has_status( array( 'pending', 'on-hold', 'failed' ) ) ) {
+			$order->add_order_note(
+				__( 'lomi.: payment confirmation pending — awaiting webhook or a later session check.', 'woo-lomi' )
+			);
+			$order->save();
+			wc_add_notice(
+				__( 'Your payment is being confirmed. You will receive an order update shortly.', 'woo-lomi' ),
+				'notice'
+			);
+		}
+
+		wp_safe_redirect( $this->get_return_url( $order ) );
 		exit;
 	}
 
