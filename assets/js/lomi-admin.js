@@ -4,6 +4,7 @@ jQuery( function( $ ) {
 	var wc_lomi_admin = {
 		testFieldSelectors: '#woocommerce_lomi_test_secret_key, #woocommerce_lomi_test_public_key, #woocommerce_lomi_test_webhook_secret',
 		liveFieldSelectors: '#woocommerce_lomi_live_secret_key, #woocommerce_lomi_live_public_key, #woocommerce_lomi_live_webhook_secret',
+		advancedVisible: false,
 
 		getSettingsTable: function() {
 			return $( '.wc-lomi-settings-table' );
@@ -40,6 +41,101 @@ jQuery( function( $ ) {
 					wc_lomi_admin.fieldRow( $( this ) ).show();
 				} );
 			}
+
+			if ( ! this.advancedVisible ) {
+				this.hideAdvancedFields();
+			}
+		},
+
+		hideAdvancedFields: function() {
+			$( '.wc-lomi-advanced-field' ).each( function() {
+				wc_lomi_admin.fieldRow( $( this ) ).hide();
+			} );
+			$( '.wc-lomi-advanced-field-row' ).hide();
+		},
+
+		showAdvancedFields: function() {
+			$( '.wc-lomi-advanced-field' ).each( function() {
+				wc_lomi_admin.fieldRow( $( this ) ).show();
+			} );
+			$( '.wc-lomi-advanced-field-row' ).show();
+		},
+
+		toggleAdvancedFields: function() {
+			this.advancedVisible = ! this.advancedVisible;
+			if ( this.advancedVisible ) {
+				this.showAdvancedFields();
+			} else {
+				this.hideAdvancedFields();
+			}
+
+			var $toggle = $( '.wc-lomi-advanced-toggle' );
+			$toggle.attr( 'aria-expanded', this.advancedVisible ? 'true' : 'false' );
+			$toggle.text(
+				this.advancedVisible
+					? ( wc_lomi_admin_params.hide_advanced || 'Hide advanced settings' )
+					: ( wc_lomi_admin_params.show_advanced || 'Show advanced settings' )
+			);
+		},
+
+		copyWebhookUrl: function( event ) {
+			var $button = event && event.currentTarget ? $( event.currentTarget ) : $( '.wc-lomi-copy-webhook-url' ).first();
+			var $input = $( '.wc-lomi-webhook-url-input' );
+			var $feedback = $( '.wc-lomi-copy-feedback' );
+			var url = $button.attr( 'data-copy-url' ) || $input.val() || '';
+			var params = typeof wc_lomi_admin_params !== 'undefined' ? wc_lomi_admin_params : {};
+
+			var onSuccess = function() {
+				$feedback.css( 'color', '#007017' ).text( params.copy_success || 'Copied!' ).show();
+				window.setTimeout( function() {
+					$feedback.fadeOut( 200, function() {
+						$( this ).text( '' ).show();
+					} );
+				}, 2000 );
+			};
+
+			var onFail = function() {
+				$input.trigger( 'focus' ).trigger( 'select' );
+				$feedback.css( 'color', '#b32d2e' ).text( params.copy_failed || 'Could not copy — select the URL and press Ctrl+C (or Cmd+C).' ).show();
+			};
+
+			var legacyCopy = function( text ) {
+				var textarea = document.createElement( 'textarea' );
+				textarea.value = text;
+				textarea.setAttribute( 'readonly', '' );
+				textarea.style.position = 'fixed';
+				textarea.style.opacity = '0';
+				textarea.style.left = '-9999px';
+				document.body.appendChild( textarea );
+				textarea.focus();
+				textarea.select();
+				textarea.setSelectionRange( 0, text.length );
+				var copied = false;
+				try {
+					copied = document.execCommand( 'copy' );
+				} catch ( err ) {
+					copied = false;
+				}
+				document.body.removeChild( textarea );
+				return copied;
+			};
+
+			if ( navigator.clipboard && window.isSecureContext ) {
+				navigator.clipboard.writeText( url ).then( onSuccess ).catch( function() {
+					if ( legacyCopy( url ) ) {
+						onSuccess();
+					} else {
+						onFail();
+					}
+				} );
+				return;
+			}
+
+			if ( legacyCopy( url ) ) {
+				onSuccess();
+			} else {
+				onFail();
+			}
 		},
 
 		init: function() {
@@ -51,7 +147,19 @@ jQuery( function( $ ) {
 
 			if ( $testMode.length ) {
 				wc_lomi_admin.toggleModeFields( $testMode.is( ':checked' ) );
+			} else {
+				wc_lomi_admin.hideAdvancedFields();
 			}
+
+			$( document.body ).on( 'click', '.wc-lomi-advanced-toggle', function( event ) {
+				event.preventDefault();
+				wc_lomi_admin.toggleAdvancedFields();
+			} );
+
+			$( document.body ).on( 'click', '.wc-lomi-copy-webhook-url', function( event ) {
+				event.preventDefault();
+				wc_lomi_admin.copyWebhookUrl( event );
+			} );
 
 			$( '.wc-lomi-metadata' ).change( function() {
 				if ( $( this ).is( ':checked' ) ) {

@@ -388,19 +388,29 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Display lomi payment icon.
+	 * Full branding card in the payment method label row (visible before and after selection).
 	 */
 	public function get_icon() {
-		$icon = wc_lomi_get_checkout_branding_html();
-		if ( ! $icon ) {
+		if ( wc_lomi_uses_checkout_branding_card() ) {
+			return apply_filters( 'woocommerce_gateway_icon', wc_lomi_get_checkout_branding_html(), $this->id );
+		}
+
+		$url = wc_lomi_get_compact_icon_url();
+		if ( ! $url ) {
 			return apply_filters( 'woocommerce_gateway_icon', '', $this->id );
 		}
+
+		$icon = sprintf(
+			'<img src="%1$s" alt="%2$s" class="wc-lomi-payment-icon" loading="lazy" decoding="async" />',
+			esc_url( $url ),
+			esc_attr( $this->get_title() )
+		);
 
 		return apply_filters( 'woocommerce_gateway_icon', $icon, $this->id );
 	}
 
 	/**
-	 * Hide title text when the composite branding image is used.
+	 * Hide the default title when the branding card carries the label.
 	 *
 	 * @return string
 	 */
@@ -483,6 +493,10 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 	 * Admin Panel Options.
 	 */
 	public function admin_options() {
+		// Settings HTML can render after admin_enqueue_scripts; ensure admin JS/CSS load.
+		$this->admin_scripts();
+
+		?>
 
 		?>
 
@@ -494,20 +508,11 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 		?>
 		</h2>
 
-		<h4>
-			<strong><?php
-			printf(
-				wp_kses_post( __( 'Configure a webhook in your <a href="%1$s" target="_blank" rel="noopener noreferrer">lomi. dashboard</a> with URL: <code style="color:red">%2$s</code> and the same signing secret as below.', 'woo-lomi' ) ),
-				'https://dashboard.lomi.africa',
-				esc_html( WC()->api_request_url( 'Tbz_WC_Lomi_Webhook' ) )
-			);
-			?></strong>
-		</h4>
-
 		<?php
 
 		if ( $this->is_valid_for_use() ) {
 
+			$this->render_webhook_setup_box();
 			$this->render_setup_health_panel();
 
 			$mode_class = $this->is_test_mode() ? 'wc-lomi-mode-test' : 'wc-lomi-mode-live';
@@ -515,15 +520,35 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 			$this->generate_settings_html();
 			echo '</table>';
 
+			echo '<p class="wc-lomi-advanced-wrap"><button type="button" class="button-link wc-lomi-advanced-toggle" aria-expanded="false">';
+			echo esc_html__( 'Show advanced settings', 'woo-lomi' );
+			echo '</button></p>';
+
+			if ( $this->is_test_mode() && 'yes' === $this->get_option( 'enabled' ) && $this->get_active_secret_key() ) {
+				$shop_url = function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'shop' ) : '';
+				if ( $shop_url ) {
+					printf(
+						'<p class="description"><strong>%1$s</strong> %2$s</p>',
+						esc_html__( 'Next step:', 'woo-lomi' ),
+						wp_kses_post(
+							sprintf(
+								/* translators: %s: store URL */
+								__( 'Place a <a href="%s" target="_blank" rel="noopener noreferrer">test order</a> on your store while test mode is on.', 'woo-lomi' ),
+								esc_url( $shop_url )
+							)
+						)
+					);
+				}
+			}
+
 			echo '<p class="description">';
-			echo esc_html__( 'Recommended webhook events: PAYMENT_SUCCEEDED and REFUND_COMPLETED.', 'woo-lomi' );
-			echo ' ';
 			printf(
-				wp_kses_post( __( 'Configure webhooks in your <a href="%1$s" target="_blank" rel="noopener noreferrer">lomi. dashboard</a>. Payouts and balance stay in the dashboard.', 'woo-lomi' ) ),
-				'https://dashboard.lomi.africa/settings/webhooks'
+				wp_kses_post( __( 'Setup guide: <a href="%1$s" target="_blank" rel="noopener noreferrer">WooCommerce docs</a>. Payouts and balance stay in the <a href="%2$s" target="_blank" rel="noopener noreferrer">lomi. dashboard</a>.', 'woo-lomi' ) ),
+				'https://docs.lomi.africa/docs/build/ecommerce-extensions/woocommerce',
+				'https://dashboard.lomi.africa'
 			);
 			echo '</p>';
-			echo '<p class="description">';
+			echo '<p class="description wc-lomi-advanced-field-row">';
 			echo esc_html__( 'WooCommerce Subscriptions: map each subscription product to a lomi recurring price in the product editor. Recurring billing is handled by lomi.; WooCommerce does not auto-charge renewals.', 'woo-lomi' );
 			echo '</p>';
 
@@ -550,27 +575,18 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 				'default'     => 'no',
 				'desc_tip'    => true,
 			),
-			'title'                            => array(
-				'title'       => __( 'Title', 'woo-lomi' ),
-				'type'        => 'text',
-				'description' => __( 'This controls the payment method title which the user sees during checkout.', 'woo-lomi' ),
-				'default'     => __( 'lomi.', 'woo-lomi' ),
-				'desc_tip'    => true,
-			),
-			'description'                      => array(
-				'title'       => __( 'Description', 'woo-lomi' ),
-				'type'        => 'textarea',
-				'description' => __( 'Optional extra text below the payment method. Leave empty to use the default lomi. branding card.', 'woo-lomi' ),
-				'default'     => '',
-				'desc_tip'    => true,
-			),
 			'testmode'                         => array(
 				'title'       => __( 'Test mode', 'woo-lomi' ),
 				'label'       => __( 'Enable Test Mode', 'woo-lomi' ),
 				'type'        => 'checkbox',
-				'description' => __( 'Test mode uses the sandbox API. Disable for live payments.', 'woo-lomi' ),
+				'description' => __( 'When enabled, uses the sandbox API and test credentials below. Turn off only when you are ready for live payments.', 'woo-lomi' ),
 				'default'     => 'yes',
 				'desc_tip'    => true,
+			),
+			'credentials_section'              => array(
+				'title'       => __( 'API credentials', 'woo-lomi' ),
+				'type'        => 'title',
+				'description' => __( 'Copy your secret API key and webhook signing secret from Dashboard → Developers → API keys and Dashboard → Webhooks.', 'woo-lomi' ),
 			),
 			'test_secret_key'                  => array(
 				'title'       => __( 'Test Secret Key', 'woo-lomi' ),
@@ -582,7 +598,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 			'test_public_key'                  => array(
 				'title'       => __( 'Test Public Key', 'woo-lomi' ),
 				'type'        => 'text',
-				'class'       => 'wc-lomi-test-field',
+				'class'       => 'wc-lomi-test-field wc-lomi-advanced-field',
 				'description' => __( 'Optional. Not required for hosted checkout.', 'woo-lomi' ),
 				'default'     => '',
 				'desc_tip'    => true,
@@ -604,7 +620,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 			'live_public_key'                  => array(
 				'title'       => __( 'Live Public Key', 'woo-lomi' ),
 				'type'        => 'text',
-				'class'       => 'wc-lomi-live-field',
+				'class'       => 'wc-lomi-live-field wc-lomi-advanced-field',
 				'description' => __( 'Optional. Not required for hosted checkout.', 'woo-lomi' ),
 				'default'     => '',
 				'desc_tip'    => true,
@@ -616,11 +632,35 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 				'description' => __( 'Secret for verifying webhook signatures (live).', 'woo-lomi' ),
 				'default'     => '',
 			),
+			'checkout_section'                 => array(
+				'title'       => __( 'Checkout display', 'woo-lomi' ),
+				'type'        => 'title',
+				'description' => __( 'Optional labels shown to customers at checkout.', 'woo-lomi' ),
+			),
+			'title'                            => array(
+				'title'       => __( 'Title', 'woo-lomi' ),
+				'type'        => 'text',
+				'description' => __( 'This controls the payment method title which the user sees during checkout.', 'woo-lomi' ),
+				'default'     => __( 'lomi.', 'woo-lomi' ),
+				'desc_tip'    => true,
+			),
+			'description'                      => array(
+				'title'       => __( 'Description', 'woo-lomi' ),
+				'type'        => 'textarea',
+				'description' => __( 'Optional extra text below the payment method. Leave empty to use the default lomi. branding card.', 'woo-lomi' ),
+				'default'     => '',
+				'desc_tip'    => true,
+			),
+			'advanced_section'                 => array(
+				'title'       => __( 'Advanced', 'woo-lomi' ),
+				'type'        => 'title',
+				'description' => __( 'Optional settings — most stores can leave these hidden.', 'woo-lomi' ),
+			),
 			'autocomplete_order'               => array(
 				'title'       => __( 'Autocomplete Order After Payment', 'woo-lomi' ),
 				'label'       => __( 'Autocomplete Order', 'woo-lomi' ),
 				'type'        => 'checkbox',
-				'class'       => 'wc-lomi-autocomplete-order',
+				'class'       => 'wc-lomi-advanced-field wc-lomi-autocomplete-order',
 				'description' => __( 'If enabled, the order will be marked as complete after successful payment', 'woo-lomi' ),
 				'default'     => 'no',
 				'desc_tip'    => true,
@@ -629,6 +669,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 				'title'       => __( 'Remove Cancel Order & Restore Cart Button', 'woo-lomi' ),
 				'label'       => __( 'Remove the cancel order & restore cart button on the pay for order page', 'woo-lomi' ),
 				'type'        => 'checkbox',
+				'class'       => 'wc-lomi-advanced-field',
 				'description' => '',
 				'default'     => 'no',
 			),
@@ -636,7 +677,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 				'title'       => __( 'Custom Metadata', 'woo-lomi' ),
 				'label'       => __( 'Enable Custom Metadata', 'woo-lomi' ),
 				'type'        => 'checkbox',
-				'class'       => 'wc-lomi-metadata',
+				'class'       => 'wc-lomi-metadata wc-lomi-advanced-field',
 				'description' => __( 'If enabled, you will be able to send more information about the order to lomi..', 'woo-lomi' ),
 				'default'     => 'no',
 				'desc_tip'    => true,
@@ -645,7 +686,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 				'title'       => __( 'Order ID', 'woo-lomi' ),
 				'label'       => __( 'Send Order ID', 'woo-lomi' ),
 				'type'        => 'checkbox',
-				'class'       => 'wc-lomi-meta-order-id',
+				'class'       => 'wc-lomi-meta-order-id wc-lomi-advanced-field',
 				'description' => __( 'If checked, the Order ID will be sent to lomi.', 'woo-lomi' ),
 				'default'     => 'no',
 				'desc_tip'    => true,
@@ -654,7 +695,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 				'title'       => __( 'Customer Name', 'woo-lomi' ),
 				'label'       => __( 'Send Customer Name', 'woo-lomi' ),
 				'type'        => 'checkbox',
-				'class'       => 'wc-lomi-meta-name',
+				'class'       => 'wc-lomi-meta-name wc-lomi-advanced-field',
 				'description' => __( 'If checked, the customer full name will be sent to lomi.', 'woo-lomi' ),
 				'default'     => 'no',
 				'desc_tip'    => true,
@@ -663,7 +704,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 				'title'       => __( 'Customer Email', 'woo-lomi' ),
 				'label'       => __( 'Send Customer Email', 'woo-lomi' ),
 				'type'        => 'checkbox',
-				'class'       => 'wc-lomi-meta-email',
+				'class'       => 'wc-lomi-meta-email wc-lomi-advanced-field',
 				'description' => __( 'If checked, the customer email address will be sent to lomi.', 'woo-lomi' ),
 				'default'     => 'no',
 				'desc_tip'    => true,
@@ -672,7 +713,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 				'title'       => __( 'Customer Phone', 'woo-lomi' ),
 				'label'       => __( 'Send Customer Phone', 'woo-lomi' ),
 				'type'        => 'checkbox',
-				'class'       => 'wc-lomi-meta-phone',
+				'class'       => 'wc-lomi-meta-phone wc-lomi-advanced-field',
 				'description' => __( 'If checked, the customer phone will be sent to lomi.', 'woo-lomi' ),
 				'default'     => 'no',
 				'desc_tip'    => true,
@@ -681,7 +722,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 				'title'       => __( 'Order Billing Address', 'woo-lomi' ),
 				'label'       => __( 'Send Order Billing Address', 'woo-lomi' ),
 				'type'        => 'checkbox',
-				'class'       => 'wc-lomi-meta-billing-address',
+				'class'       => 'wc-lomi-meta-billing-address wc-lomi-advanced-field',
 				'description' => __( 'If checked, the order billing address will be sent to lomi.', 'woo-lomi' ),
 				'default'     => 'no',
 				'desc_tip'    => true,
@@ -690,7 +731,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 				'title'       => __( 'Order Shipping Address', 'woo-lomi' ),
 				'label'       => __( 'Send Order Shipping Address', 'woo-lomi' ),
 				'type'        => 'checkbox',
-				'class'       => 'wc-lomi-meta-shipping-address',
+				'class'       => 'wc-lomi-meta-shipping-address wc-lomi-advanced-field',
 				'description' => __( 'If checked, the order shipping address will be sent to lomi.', 'woo-lomi' ),
 				'default'     => 'no',
 				'desc_tip'    => true,
@@ -699,7 +740,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 				'title'       => __( 'Product(s) Purchased', 'woo-lomi' ),
 				'label'       => __( 'Send Product(s) Purchased', 'woo-lomi' ),
 				'type'        => 'checkbox',
-				'class'       => 'wc-lomi-meta-products',
+				'class'       => 'wc-lomi-meta-products wc-lomi-advanced-field',
 				'description' => __( 'If checked, the product(s) purchased will be sent to lomi.', 'woo-lomi' ),
 				'default'     => 'no',
 				'desc_tip'    => true,
@@ -711,9 +752,15 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Payment form on checkout page
+	 * Payment form on checkout page (custom description only — branding is in the label).
 	 */
 	public function payment_fields() {
+		$description = $this->get_description();
+		if ( empty( $description ) ) {
+			return;
+		}
+
+		echo wpautop( wptexturize( $description ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	/**
@@ -727,6 +774,13 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 		wp_enqueue_style(
 			'wc-lomi-checkout',
 			plugins_url( 'assets/css/lomi-checkout.css', WC_LOMI_MAIN_FILE ),
+			array(),
+			WC_LOMI_VERSION
+		);
+
+		wp_enqueue_style(
+			'wc-lomi-checkout-branding',
+			plugins_url( 'assets/css/checkout-branding.css', WC_LOMI_MAIN_FILE ),
 			array(),
 			WC_LOMI_VERSION
 		);
@@ -901,7 +955,11 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		$lomi_admin_params = array(
-			'plugin_url' => WC_LOMI_URL,
+			'plugin_url'      => WC_LOMI_URL,
+			'copy_success'    => __( 'Copied!', 'woo-lomi' ),
+			'copy_failed'     => __( 'Could not copy — select the URL and press Ctrl+C (or Cmd+C).', 'woo-lomi' ),
+			'show_advanced'   => __( 'Show advanced settings', 'woo-lomi' ),
+			'hide_advanced'   => __( 'Hide advanced settings', 'woo-lomi' ),
 		);
 
 		wp_enqueue_script( 'wc_lomi_admin', plugins_url( 'assets/js/lomi-admin' . $suffix . '.js', WC_LOMI_MAIN_FILE ), array( 'jquery' ), WC_LOMI_VERSION, true );
@@ -914,6 +972,8 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 			'wc_lomi_admin',
 			'.wc-lomi-mode-live tr:has(.wc-lomi-test-field){display:none!important}'
 			. '.wc-lomi-mode-test tr:has(.wc-lomi-live-field){display:none!important}'
+			. '.wc-lomi-advanced-field-row{display:none!important}'
+			. '.wc-lomi-advanced-wrap{margin-top:-0.5em}'
 		);
 
 	}
@@ -1112,12 +1172,7 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 				$detail = wp_strip_all_tags( (string) $raw );
 			}
 
-			$msg = sprintf(
-				/* translators: 1: HTTP status code, 2: API response detail */
-				__( 'lomi. API request failed (HTTP %1$d): %2$s', 'woo-lomi' ),
-				$code,
-				$detail
-			);
+			$msg = $this->format_merchant_facing_api_error( $code, $detail, $json );
 
 			$this->log_lomi_api_error(
 				$msg,
@@ -1149,6 +1204,117 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 
 		$context['source'] = 'woo-lomi';
 		wc_get_logger()->error( $message, $context );
+	}
+
+	/**
+	 * Webhook listener URL registered with WooCommerce API.
+	 *
+	 * @return string
+	 */
+	protected function get_webhook_listener_url() {
+		return WC()->api_request_url( 'Tbz_WC_Lomi_Webhook' );
+	}
+
+	/**
+	 * Copy-friendly webhook setup block on the settings screen.
+	 *
+	 * @return void
+	 */
+	protected function render_webhook_setup_box() {
+		$url = $this->get_webhook_listener_url();
+		?>
+		<div class="wc-lomi-webhook-setup" style="max-width:720px;margin:1em 0;">
+			<p><strong><?php esc_html_e( 'Webhook URL (copy into Dashboard → Webhooks)', 'woo-lomi' ); ?></strong></p>
+			<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+				<input
+					type="text"
+					readonly
+					class="wc-lomi-webhook-url-input large-text code"
+					value="<?php echo esc_attr( $url ); ?>"
+					style="flex:1;min-width:280px;"
+					onclick="this.select();"
+				/>
+				<button
+					type="button"
+					class="button wc-lomi-copy-webhook-url"
+					data-copy-url="<?php echo esc_attr( $url ); ?>"
+				><?php esc_html_e( 'Copy URL', 'woo-lomi' ); ?></button>
+				<span class="wc-lomi-copy-feedback" aria-live="polite" style="display:none;color:#007017;font-weight:600;"></span>
+			</div>
+			<p class="description">
+				<?php
+				printf(
+					wp_kses_post( __( 'Use the same signing secret as below. Enable <code>PAYMENT_SUCCEEDED</code> and <code>REFUND_COMPLETED</code> in your <a href="%1$s" target="_blank" rel="noopener noreferrer">lomi. dashboard</a>.', 'woo-lomi' ) ),
+					'https://dashboard.lomi.africa/settings/webhooks'
+				);
+				?>
+			</p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Map API failures to merchant-friendly messages (support-facing detail stays in logs).
+	 *
+	 * @param int         $http_code HTTP status.
+	 * @param string      $detail    API detail string.
+	 * @param object|null $json      Decoded JSON body.
+	 * @return string
+	 */
+	protected function format_merchant_facing_api_error( $http_code, $detail, $json = null ) {
+		$reference = '';
+		if ( is_object( $json ) && ! empty( $json->request_id ) ) {
+			$reference = ' ' . sprintf(
+				/* translators: %s: support reference id */
+				__( '(Reference: %s)', 'woo-lomi' ),
+				(string) $json->request_id
+			);
+		} elseif ( is_object( $json ) && ! empty( $json->correlation_id ) ) {
+			$reference = ' ' . sprintf(
+				/* translators: %s: support reference id */
+				__( '(Reference: %s)', 'woo-lomi' ),
+				(string) $json->correlation_id
+			);
+		}
+
+		$mode_label = $this->testmode ? __( 'test', 'woo-lomi' ) : __( 'live', 'woo-lomi' );
+
+		switch ( (int) $http_code ) {
+			case 401:
+				return sprintf(
+					/* translators: 1: test or live, 2: optional reference id */
+					__( 'Invalid secret API key for %1$s mode. Copy the key from Dashboard → Developers → API keys and ensure test mode matches your keys.%2$s', 'woo-lomi' ),
+					$mode_label,
+					$reference
+				);
+			case 403:
+				return sprintf(
+					/* translators: %s: optional reference id */
+					__( 'This API key cannot perform this action. Check key permissions in the lomi. dashboard.%s', 'woo-lomi' ),
+					$reference
+				);
+			case 404:
+				return sprintf(
+					/* translators: %s: optional reference id */
+					__( 'lomi. could not find this resource. Confirm test/live mode matches the keys in your dashboard.%s', 'woo-lomi' ),
+					$reference
+				);
+			case 422:
+				return sprintf(
+					/* translators: 1: API validation detail, 2: optional reference id */
+					__( 'Payment could not be created: %1$s.%2$s', 'woo-lomi' ),
+					$detail,
+					$reference
+				);
+			default:
+				return sprintf(
+					/* translators: 1: HTTP status code, 2: API detail, 3: optional reference id */
+					__( 'lomi. returned an error (%1$d): %2$s.%3$s See the WooCommerce setup guide on docs.lomi.africa.', 'woo-lomi' ),
+					(int) $http_code,
+					$detail,
+					$reference
+				);
+		}
 	}
 
 	/**
@@ -1314,6 +1480,18 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 			'message' => $active_webhook ? __( 'Configured', 'woo-lomi' ) : __( 'Recommended — required to verify PAYMENT_SUCCEEDED webhooks.', 'woo-lomi' ),
 		);
 
+		$checks['webhook_url'] = array(
+			'label'   => __( 'Webhook URL', 'woo-lomi' ),
+			'status'  => 'ok',
+			'message' => __( 'Copy the URL above into Dashboard → Webhooks.', 'woo-lomi' ),
+		);
+
+		$checks['webhook_events'] = array(
+			'label'   => __( 'Webhook events', 'woo-lomi' ),
+			'status'  => 'info',
+			'message' => __( 'Checklist: enable PAYMENT_SUCCEEDED and REFUND_COMPLETED in the dashboard (WooCommerce cannot verify this automatically).', 'woo-lomi' ),
+		);
+
 		$checks['https'] = array(
 			'label'   => __( 'HTTPS', 'woo-lomi' ),
 			'status'  => is_ssl() ? 'ok' : 'warning',
@@ -1349,12 +1527,16 @@ class WC_Gateway_Lomi extends WC_Payment_Gateway {
 		echo '<thead><tr><th>' . esc_html__( 'Check', 'woo-lomi' ) . '</th><th>' . esc_html__( 'Status', 'woo-lomi' ) . '</th><th>' . esc_html__( 'Details', 'woo-lomi' ) . '</th></tr></thead><tbody>';
 		foreach ( $checks as $check ) {
 			$status_label = __( 'OK', 'woo-lomi' );
+			$row_style    = '';
 			if ( 'error' === $check['status'] ) {
 				$status_label = __( 'Action required', 'woo-lomi' );
 			} elseif ( 'warning' === $check['status'] ) {
 				$status_label = __( 'Warning', 'woo-lomi' );
+			} elseif ( 'info' === $check['status'] ) {
+				$status_label = __( 'Checklist', 'woo-lomi' );
+				$row_style    = ' style="background:#f0f6fc;"';
 			}
-			echo '<tr>';
+			echo '<tr' . $row_style . '>';
 			echo '<td>' . esc_html( $check['label'] ) . '</td>';
 			echo '<td>' . esc_html( $status_label ) . '</td>';
 			echo '<td>' . esc_html( $check['message'] ) . '</td>';
