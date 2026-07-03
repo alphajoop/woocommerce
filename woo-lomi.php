@@ -141,7 +141,7 @@ function wc_lomi_get_checkout_payment_icon_urls() {
 }
 
 /**
- * Composite checkout branding image (legacy asset; optional override).
+ * Pay-with-lomi header image (aligned with PrestaShop checkout branding).
  *
  * @return string
  */
@@ -149,6 +149,16 @@ function wc_lomi_get_checkout_branding_image_url() {
 	$url = wc_lomi_get_payment_icon_url( 'pay-with-lomi' );
 
 	return apply_filters( 'wc_lomi_checkout_branding_image_url', $url );
+}
+
+/**
+ * Whether a checkout payment icon should use the wider tile.
+ *
+ * @param string $slug Icon basename.
+ * @return bool
+ */
+function wc_lomi_is_wide_checkout_icon_slug( $slug ) {
+	return in_array( $slug, array( 'apple-pay', 'google-pay' ), true );
 }
 
 /**
@@ -180,7 +190,7 @@ function wc_lomi_enqueue_checkout_branding_styles() {
 add_action( 'wp_enqueue_scripts', 'wc_lomi_enqueue_checkout_branding_styles' );
 
 /**
- * Checkout branding card: title, trust badge, and payment method icons.
+ * Checkout branding card: pay-with image + payment method icons (PrestaShop parity).
  *
  * @return string
  */
@@ -193,45 +203,51 @@ function wc_lomi_get_checkout_branding_html() {
 			$icons[] = array(
 				'slug' => $slug,
 				'url'  => $url,
+				'wide' => wc_lomi_is_wide_checkout_icon_slug( $slug ),
 			);
 		}
 	}
 
+	$pay_with_image_url = wc_lomi_get_checkout_branding_image_url();
+
 	ob_start();
 	?>
 	<div class="wc-lomi-checkout-branding">
-		<div class="wc-lomi-checkout-branding__header">
-			<span class="wc-lomi-checkout-branding__badge">
-				<?php
-				$secured_by_image_url = wc_lomi_get_checkout_branding_image_url();
-				if ( $secured_by_image_url ) :
-					?>
+		<div class="wc-lomi-checkout-branding__main">
+			<div class="wc-lomi-checkout-branding__brand">
+				<?php if ( $pay_with_image_url ) : ?>
 					<img
-						class="wc-lomi-secured-by-image"
-						src="<?php echo esc_url( $secured_by_image_url ); ?>"
-						alt="<?php echo esc_attr__( 'Secured by lomi.', 'woo-lomi' ); ?>"
+						class="wc-lomi-pay-with-image"
+						src="<?php echo esc_url( $pay_with_image_url ); ?>"
+						alt="<?php echo esc_attr__( 'Pay with lomi.', 'woo-lomi' ); ?>"
 						loading="lazy"
 						decoding="async"
 					/>
 				<?php else : ?>
-					<?php
-					echo wp_kses(
-						__( 'Secured by <strong>lomi.</strong>', 'woo-lomi' ),
-						array( 'strong' => array() )
-					);
-					?>
+					<p class="wc-lomi-checkout-branding__title">
+						<?php
+						echo wp_kses(
+							__( 'Pay with <strong>lomi.</strong>', 'woo-lomi' ),
+							array( 'strong' => array() )
+						);
+						?>
+					</p>
 				<?php endif; ?>
-			</span>
-		</div>
-		<?php if ( ! empty( $icons ) ) : ?>
-		<div class="wc-lomi-checkout-branding__methods">
-			<?php foreach ( $icons as $icon ) : ?>
-			<div class="wc-lomi-checkout-branding__method<?php echo 'spi' === $icon['slug'] ? ' wc-lomi-checkout-branding__method--wide' : ''; ?>">
-				<img src="<?php echo esc_url( $icon['url'] ); ?>" alt="" loading="lazy" decoding="async" />
 			</div>
-			<?php endforeach; ?>
+			<?php if ( ! empty( $icons ) ) : ?>
+			<div class="wc-lomi-checkout-branding__methods" aria-hidden="true">
+				<?php foreach ( $icons as $icon ) : ?>
+				<div class="wc-lomi-checkout-branding__method<?php echo ! empty( $icon['wide'] ) ? ' wc-lomi-checkout-branding__method--wide' : ''; ?>">
+					<img src="<?php echo esc_url( $icon['url'] ); ?>" alt="" loading="lazy" decoding="async" />
+				</div>
+				<?php endforeach; ?>
+			</div>
+			<?php endif; ?>
 		</div>
-		<?php endif; ?>
+		<p class="wc-lomi-checkout-branding__hint">
+			<span class="wc-lomi-checkout-branding__hint-icon" aria-hidden="true"></span>
+			<?php esc_html_e( 'Secure hosted checkout on lomi.', 'woo-lomi' ); ?>
+		</p>
 	</div>
 	<?php
 	return (string) ob_get_clean();

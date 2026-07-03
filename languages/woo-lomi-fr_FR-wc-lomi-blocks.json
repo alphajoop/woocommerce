@@ -1,5 +1,5 @@
 {
-  "translation-revision-date": "2026-06-05T02:07:02.110Z",
+  "translation-revision-date": "2026-06-30T14:52:08.021Z",
   "generator": "scripts/i18n-build.mjs",
   "domain": "messages",
   "locale_data": {
@@ -9,29 +9,26 @@
         "lang": "fr_FR",
         "plural-forms": "nplurals=2; plural=(n > 1);"
       },
-      "1 gateway": [
-        "1 passerelle"
-      ],
-      "2 gateways": [
-        "2 passerelles"
-      ],
-      "3 gateways": [
-        "3 passerelles"
-      ],
-      "4 gateways": [
-        "4 passerelles"
-      ],
-      "5 gateways": [
-        "5 passerelles"
+      "(Reference: %s)": [
+        "(Reference: %s)"
       ],
       "Accept payments with lomi. Secure hosted checkout. <a href=\"%1$s\" target=\"_blank\">Create an account</a> and <a href=\"%2$s\" target=\"_blank\">get your API keys</a>.": [
         "Acceptez les paiements avec lomi. via une page de paiement securisee. <a href=\"%1$s\" target=\"_blank\">Creez un compte</a> et <a href=\"%2$s\" target=\"_blank\">recuperez vos cles API</a>."
       ],
-      "Additional lomi. Gateways": [
-        "Passerelles lomi. supplementaires"
+      "Action required": [
+        "Action required"
       ],
-      "Additional lomi. payment method using shared API keys from the main lomi. gateway. <a href=\"%1$s\" target=\"_blank\">lomi.</a> · <a href=\"%2$s\" target=\"_blank\">Dashboard</a>.": [
-        "Methode de paiement lomi. supplementaire utilisant les cles API partagees de la passerelle lomi. principale. <a href=\"%1$s\" target=\"_blank\">lomi.</a> · <a href=\"%2$s\" target=\"_blank\">Tableau de bord</a>."
+      "Advanced": [
+        "Advanced"
+      ],
+      "API connection": [
+        "API connection"
+      ],
+      "API credentials": [
+        "API credentials"
+      ],
+      "API secret key": [
+        "API secret key"
       ],
       "Autocomplete Order": [
         "Finaliser automatiquement la commande"
@@ -39,23 +36,50 @@
       "Autocomplete Order After Payment": [
         "Finaliser automatiquement la commande apres paiement"
       ],
-      "Automatic refunds from WooCommerce are not available for lomi.. Process refunds in your lomi. dashboard.": [
-        "Les remboursements automatiques depuis WooCommerce ne sont pas disponibles pour lomi.. Effectuez les remboursements dans votre tableau de bord lomi."
-      ],
-      "Automatic subscription renewals are not charged in WooCommerce with lomi. hosted checkout. Collect payment via a new checkout session or from the lomi. dashboard.": [
-        "Les renouvellements automatiques d'abonnement ne sont pas debites dans WooCommerce avec la page de paiement hebergee lomi. Encaissez le paiement via une nouvelle session de paiement ou depuis le tableau de bord lomi."
+      "Automatic subscription renewals are not charged in WooCommerce with lomi. Recurring billing is handled by the lomi. subscription engine after the first payment.": [
+        "Automatic subscription renewals are not charged in WooCommerce with lomi. Recurring billing is handled by the lomi. subscription engine after the first payment."
       ],
       "Cancel order & restore cart": [
         "Annuler la commande et restaurer le panier"
       ],
-      "Configure a webhook in your <a href=\"%1$s\" target=\"_blank\" rel=\"noopener noreferrer\">lomi. dashboard</a> with URL: <code style=\"color:red\">%2$s</code> and the same signing secret as below.": [
-        "Configurez un webhook dans votre <a href=\"%1$s\" target=\"_blank\" rel=\"noopener noreferrer\">tableau de bord lomi.</a> avec l'URL: <code style=\"color:red\">%2$s</code> et le meme secret de signature que ci-dessous."
+      "Check": [
+        "Check"
+      ],
+      "Checklist": [
+        "Checklist"
+      ],
+      "Checklist: enable PAYMENT_SUCCEEDED and REFUND_COMPLETED in the dashboard (WooCommerce cannot verify this automatically).": [
+        "Checklist: enable PAYMENT_SUCCEEDED and REFUND_COMPLETED in the dashboard (WooCommerce cannot verify this automatically)."
+      ],
+      "Checkout display": [
+        "Checkout display"
+      ],
+      "Checkout enabled": [
+        "Checkout enabled"
+      ],
+      "Checkout one subscription product per order when paying with lomi.": [
+        "Checkout one subscription product per order when paying with lomi."
+      ],
+      "Configured": [
+        "Configured"
+      ],
+      "Copied!": [
+        "Copied!"
+      ],
+      "Copy the URL above into Dashboard → Webhooks.": [
+        "Copy the URL above into Dashboard → Webhooks."
+      ],
+      "Copy URL": [
+        "Copy URL"
+      ],
+      "Copy your secret API key and webhook signing secret from Dashboard → Developers → API keys and Dashboard → Webhooks.": [
+        "Copy your secret API key and webhook signing secret from Dashboard → Developers → API keys and Dashboard → Webhooks."
+      ],
+      "Could not copy — select the URL and press Ctrl+C (or Cmd+C).": [
+        "Could not copy — select the URL and press Ctrl+C (or Cmd+C)."
       ],
       "Could not verify payment with lomi..": [
         "Impossible de verifier le paiement avec lomi.."
-      ],
-      "Create additional lomi. payment methods that use the same API keys as the main gateway, with custom checkout labels and icons.": [
-        "Creez des methodes de paiement lomi. supplementaires qui utilisent les memes cles API que la passerelle principale, avec des libelles et des icones de paiement personnalises."
       ],
       "Currency mismatch while verifying payment with lomi.. Please contact the store.": [
         "La devise ne correspond pas lors de la verification du paiement avec lomi.. Veuillez contacter la boutique."
@@ -75,8 +99,14 @@
       "Description": [
         "Description"
       ],
+      "Details": [
+        "Details"
+      ],
       "Disable lomi. test mode": [
         "Desactiver le mode test lomi."
+      ],
+      "Disabled — check “Enable lomi.” below to show at checkout.": [
+        "Disabled — check “Enable lomi.” below to show at checkout."
       ],
       "Enable Custom Metadata": [
         "Activer les metadonnees personnalisees"
@@ -84,26 +114,23 @@
       "Enable lomi.": [
         "Activer lomi."
       ],
-      "Enable lomi. - %s": [
-        "Activer lomi. - %s"
-      ],
-      "Enable lomi. on the checkout page.": [
-        "Activer lomi. sur la page de paiement."
-      ],
       "Enable Test Mode": [
         "Activer le mode test"
-      ],
-      "Enable this gateway as a payment option on the checkout page.": [
-        "Activer cette passerelle comme option de paiement sur la page de commande."
       ],
       "Enable/Disable": [
         "Activer/Desactiver"
       ],
-      "Five": [
-        "Cinq"
+      "Enabled": [
+        "Enabled"
       ],
-      "Four": [
-        "Quatre"
+      "GET /me succeeded": [
+        "GET /me succeeded"
+      ],
+      "Hide advanced settings": [
+        "Hide advanced settings"
+      ],
+      "HTTPS": [
+        "HTTPS"
       ],
       "https://lomi.africa": [
         "https://lomi.africa"
@@ -135,8 +162,23 @@
       "If enabled, you will be able to send more information about the order to lomi..": [
         "Si cette option est activee, vous pourrez envoyer davantage d'informations sur la commande a lomi.."
       ],
-      "Important: configure your webhook in the <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer\">lomi. dashboard</a> using the URL below.": [
-        "Important: configurez votre webhook dans le <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer\">tableau de bord lomi.</a> avec l'URL ci-dessous."
+      "in gateway settings": [
+        "in gateway settings"
+      ],
+      "Invalid secret API key for %1$s mode. Copy the key from Dashboard → Developers → API keys and ensure test mode matches your keys.%2$s": [
+        "Invalid secret API key for %1$s mode. Copy the key from Dashboard → Developers → API keys and ensure test mode matches your keys.%2$s"
+      ],
+      "Link \"%s\" to a lomi recurring price in the product editor before checkout.": [
+        "Link \"%s\" to a lomi recurring price in the product editor before checkout."
+      ],
+      "Linked": [
+        "Linked"
+      ],
+      "live": [
+        "live"
+      ],
+      "Live API active": [
+        "Live API active"
       ],
       "Live Public Key": [
         "Cle publique de production"
@@ -147,17 +189,17 @@
       "Live webhook secret": [
         "Secret webhook de production"
       ],
+      "lomi linked": [
+        "lomi linked"
+      ],
+      "lomi price ID": [
+        "lomi price ID"
+      ],
+      "lomi product ID (optional)": [
+        "lomi product ID (optional)"
+      ],
       "lomi.": [
         "lomi."
-      ],
-      "lomi. ": [
-        "lomi. "
-      ],
-      "lomi. - %s": [
-        "lomi. - %s"
-      ],
-      "lomi. API request failed (HTTP %1$d): %2$s": [
-        "La requete API lomi. a echoue (HTTP %1$d): %2$s"
       ],
       "lomi. API request failed before receiving a response: %s": [
         "La requete API lomi. a echoue avant de recevoir une reponse: %s"
@@ -165,23 +207,44 @@
       "lomi. checkout session expired before payment; review or cancel the order.": [
         "La session de paiement lomi. a expire avant le paiement; verifiez ou annulez la commande."
       ],
+      "lomi. could not find this resource. Confirm test/live mode matches the keys in your dashboard.%s": [
+        "lomi. could not find this resource. Confirm test/live mode matches the keys in your dashboard.%s"
+      ],
+      "lomi. credentials are saved but the gateway is disabled. Enable lomi. %shere%s for checkout.": [
+        "lomi. credentials are saved but the gateway is disabled. Enable lomi. %shere%s for checkout."
+      ],
       "lomi. for WooCommerce": [
         "lomi. pour WooCommerce"
+      ],
+      "lomi. is enabled but no webhook signing secret is configured. Add one %shere%s and register the webhook URL in your lomi. dashboard.": [
+        "lomi. is enabled but no webhook signing secret is configured. Add one %shere%s and register the webhook URL in your lomi. dashboard."
       ],
       "lomi. payment gateway disabled": [
         "Passerelle de paiement lomi. desactivee"
       ],
-      "lomi. Payment Gateway Disabled: %s": [
-        "Passerelle de paiement lomi. desactivee: %s"
-      ],
-      "lomi. payment methods": [
-        "Methodes de paiement lomi."
-      ],
       "lomi. payment successful (checkout session: %s)": [
         "Paiement lomi. reussi (session de paiement: %s)"
       ],
+      "lomi. recommends HTTPS for production checkout and webhooks. Your site is not served over SSL.": [
+        "lomi. recommends HTTPS for production checkout and webhooks. Your site is not served over SSL."
+      ],
+      "lomi. refund completed (refund %s). Initiated outside WooCommerce if no matching Woo refund exists.": [
+        "lomi. refund completed (refund %s). Initiated outside WooCommerce if no matching Woo refund exists."
+      ],
+      "lomi. refund completed. Initiated outside WooCommerce if no matching Woo refund exists.": [
+        "lomi. refund completed. Initiated outside WooCommerce if no matching Woo refund exists."
+      ],
+      "lomi. refund initiated (%1$s, %2$s).": [
+        "lomi. refund initiated (%1$s, %2$s)."
+      ],
+      "lomi. refund initiated (%s).": [
+        "lomi. refund initiated (%s)."
+      ],
       "lomi. requires WooCommerce to be installed and active. Click %s to install WooCommerce.": [
         "lomi. necessite que WooCommerce soit installe et actif. Cliquez sur %s pour installer WooCommerce."
+      ],
+      "lomi. returned an error (%1$d): %2$s.%3$s See the WooCommerce setup guide on docs.lomi.africa.": [
+        "lomi. returned an error (%1$d): %2$s.%3$s See the WooCommerce setup guide on docs.lomi.africa."
       ],
       "lomi. supports XOF, USD, and EUR only. Set your store currency <a href=\"%s\">here</a>.": [
         "lomi. prend uniquement en charge XOF, USD et EUR. Definissez la devise de votre boutique <a href=\"%s\">ici</a>."
@@ -189,14 +252,23 @@
       "lomi. test mode enabled": [
         "Mode test lomi. active"
       ],
+      "lomi. test mode is active.": [
+        "lomi. test mode is active."
+      ],
       "lomi. test mode is currently enabled. Remember to disable it when you want to start accepting live payments on your site.": [
         "Le mode test lomi. est actuellement active. Pensez a le desactiver lorsque vous voulez accepter des paiements reels sur votre site."
       ],
-      "lomi. Transaction Failed (%s)": [
-        "Transaction lomi. echouee (%s)"
-      ],
       "lomi.: amount mismatch (order expects %1$s; session has %2$s).": [
         "lomi.: montant different (la commande attend %1$s; la session contient %2$s)."
+      ],
+      "lomi.: catalog checkout currency (%1$s) differs from store currency (%2$s); verified against lomi catalog price.": [
+        "lomi.: catalog checkout currency (%1$s) differs from store currency (%2$s); verified against lomi catalog price."
+      ],
+      "lomi.: checkout session belongs to a different order (session order %1$s vs current order %2$s). Possible replay attempt.": [
+        "lomi.: checkout session belongs to a different order (session order %1$s vs current order %2$s). Possible replay attempt."
+      ],
+      "lomi.: checkout session expired before payment was confirmed.": [
+        "lomi.: checkout session expired before payment was confirmed."
       ],
       "lomi.: checkout session response missing checkout_session_id or checkout_url.": [
         "lomi.: la reponse de session de paiement ne contient pas checkout_session_id ou checkout_url."
@@ -207,8 +279,17 @@
       "lomi.: currency mismatch (order %1$s vs session %2$s).": [
         "lomi.: devise differente (commande %1$s contre session %2$s)."
       ],
+      "lomi.: customer cancelled hosted checkout.": [
+        "lomi.: customer cancelled hosted checkout."
+      ],
+      "lomi.: customer left hosted checkout before completing payment.": [
+        "lomi.: customer left hosted checkout before completing payment."
+      ],
       "lomi.: failed to create checkout session (%s)": [
         "lomi.: echec de creation de la session de paiement (%s)"
+      ],
+      "lomi.: payment confirmation pending — awaiting webhook or a later session check.": [
+        "lomi.: payment confirmation pending — awaiting webhook or a later session check."
       ],
       "lomi.: PAYMENT_SUCCEEDED webhook received but session could not be fetched from API.": [
         "lomi.: webhook PAYMENT_SUCCEEDED recu, mais la session n'a pas pu etre recuperee depuis l'API."
@@ -219,20 +300,47 @@
       "lomi.: session not paid yet (status: %1$s, session: %2$s).": [
         "lomi.: session pas encore payee (statut: %1$s, session: %2$s)."
       ],
-      "Mastercard": [
-        "Mastercard"
+      "lomi.: subscription line amount mismatch (expected %1$s; session has %2$s). Align Woo subscription price with the lomi recurring price.": [
+        "lomi.: subscription line amount mismatch (expected %1$s; session has %2$s). Align Woo subscription price with the lomi recurring price."
+      ],
+      "Missing — add your test or live secret key below.": [
+        "Missing — add your test or live secret key below."
       ],
       "Missing lomi. session. Please try again or contact the store.": [
         "Session lomi. manquante. Veuillez reessayer ou contacter la boutique."
       ],
+      "Must be enabled for lomi. to appear at checkout (in addition to the Active toggle on the Payments list).": [
+        "Must be enabled for lomi. to appear at checkout (in addition to the Active toggle on the Payments list)."
+      ],
+      "Must be XOF, USD, or EUR.": [
+        "Must be XOF, USD, or EUR."
+      ],
+      "Next step:": [
+        "Next step:"
+      ],
       "No response body.": [
         "Aucun corps de reponse."
       ],
-      "One": [
-        "Une"
+      "Not detected — use HTTPS in production.": [
+        "Not detected — use HTTPS in production."
       ],
-      "Optional. Not required for hosted checkout; reserved for future use.": [
-        "Facultatif. Non requis pour la page de paiement hebergee; reserve a une utilisation future."
+      "Not linked": [
+        "Not linked"
+      ],
+      "OK": [
+        "OK"
+      ],
+      "Open lomi. dashboard to copy price IDs from your catalog.": [
+        "Open lomi. dashboard to copy price IDs from your catalog."
+      ],
+      "Optional extra text below the payment method. Leave empty to use the default lomi. branding card.": [
+        "Optional extra text below the payment method. Leave empty to use the default lomi. branding card."
+      ],
+      "Optional labels shown to customers at checkout.": [
+        "Optional labels shown to customers at checkout."
+      ],
+      "Optional settings — most stores can leave these hidden.": [
+        "Optional settings — most stores can leave these hidden."
       ],
       "Optional. Not required for hosted checkout.": [
         "Facultatif. Non requis pour la page de paiement hebergee."
@@ -252,14 +360,26 @@
       "Order Shipping Address": [
         "Adresse de livraison de la commande"
       ],
-      "Pay securely with lomi.": [
-        "Payez en toute securite avec lomi."
+      "Pay with": [
+        "Pay with"
+      ],
+      "Pay with <strong>lomi.</strong>": [
+        "Pay with <strong>lomi.</strong>"
       ],
       "Pay with lomi.": [
         "Payer avec lomi."
       ],
-      "Payment Icons": [
-        "Icones de paiement"
+      "Payment could not be created: %1$s.%2$s": [
+        "Payment could not be created: %1$s.%2$s"
+      ],
+      "Payment verification failed. Please try again or contact the store.": [
+        "Payment verification failed. Please try again or contact the store."
+      ],
+      "Payment was cancelled. Your cart has been restored — you can place your order again.": [
+        "Payment was cancelled. Your cart has been restored — you can place your order again."
+      ],
+      "Place a <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer\">test order</a> on your store while test mode is on.": [
+        "Place a <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer\">test order</a> on your store while test mode is on."
       ],
       "Please enter your lomi. secret API key %shere%s to use this gateway.": [
         "Veuillez saisir votre cle API secrete lomi. %sici%s pour utiliser cette passerelle."
@@ -267,20 +387,35 @@
       "Product(s) Purchased": [
         "Produit(s) achete(s)"
       ],
+      "Recommended — required to verify PAYMENT_SUCCEEDED webhooks.": [
+        "Recommended — required to verify PAYMENT_SUCCEEDED webhooks."
+      ],
+      "Recurring lomi. price UUID for this variation.": [
+        "Recurring lomi. price UUID for this variation."
+      ],
+      "Refund amount must be greater than zero.": [
+        "Refund amount must be greater than zero."
+      ],
       "Remove Cancel Order & Restore Cart Button": [
         "Retirer le bouton Annuler la commande et restaurer le panier"
       ],
       "Remove the cancel order & restore cart button on the pay for order page": [
         "Retirer le bouton Annuler la commande et restaurer le panier sur la page de paiement de commande"
       ],
+      "Renewal billing is handled by the lomi. subscription engine — not charged automatically in WooCommerce. Manage renewals in the lomi. customer portal or dashboard.": [
+        "Renewal billing is handled by the lomi. subscription engine — not charged automatically in WooCommerce. Manage renewals in the lomi. customer portal or dashboard."
+      ],
       "Return to payments": [
         "Retour aux paiements"
       ],
+      "Sandbox API active": [
+        "Sandbox API active"
+      ],
+      "Sandbox API keys are in use. Disable test mode %swhen you go live%s.": [
+        "Sandbox API keys are in use. Disable test mode %swhen you go live%s."
+      ],
       "Saved card payments are not available with lomi.": [
         "Les paiements par carte enregistree ne sont pas disponibles avec lomi."
-      ],
-      "Saved cards are not supported with lomi. Use the hosted checkout.": [
-        "Les cartes enregistrees ne sont pas prises en charge avec lomi. Utilisez la page de paiement hebergee."
       ],
       "Secret for verifying webhook signatures (live).": [
         "Secret pour verifier les signatures webhook (production)."
@@ -288,17 +423,8 @@
       "Secret for verifying webhook signatures (test). Must match the secret configured on your lomi. webhook endpoint.": [
         "Secret pour verifier les signatures webhook (test). Il doit correspondre au secret configure sur votre endpoint webhook lomi."
       ],
-      "Secured by lomi. Blue": [
-        "Securise par lomi. bleu"
-      ],
-      "Secured by lomi. White": [
-        "Securise par lomi. blanc"
-      ],
-      "Select One": [
-        "Selectionner"
-      ],
-      "Select payment icons": [
-        "Selectionner les icones de paiement"
+      "Secure hosted checkout on lomi.": [
+        "Secure hosted checkout on lomi."
       ],
       "Send Customer Email": [
         "Envoyer l'e-mail client"
@@ -324,11 +450,29 @@
       "Settings": [
         "Reglages"
       ],
+      "Setup guide: <a href=\"%1$s\" target=\"_blank\" rel=\"noopener noreferrer\">WooCommerce docs</a>. Payouts and balance stay in the <a href=\"%2$s\" target=\"_blank\" rel=\"noopener noreferrer\">lomi. dashboard</a>.": [
+        "Setup guide: <a href=\"%1$s\" target=\"_blank\" rel=\"noopener noreferrer\">WooCommerce docs</a>. Payouts and balance stay in the <a href=\"%2$s\" target=\"_blank\" rel=\"noopener noreferrer\">lomi. dashboard</a>."
+      ],
+      "Setup health": [
+        "Setup health"
+      ],
+      "Show advanced settings": [
+        "Show advanced settings"
+      ],
+      "Split subscription and one-time products into separate orders when paying with lomi.": [
+        "Split subscription and one-time products into separate orders when paying with lomi."
+      ],
+      "Status": [
+        "Status"
+      ],
+      "Store currency": [
+        "Store currency"
+      ],
+      "test": [
+        "test"
+      ],
       "Test mode": [
         "Mode test"
-      ],
-      "Test mode uses the sandbox API. Disable for live payments.": [
-        "Le mode test utilise l'API sandbox. Desactivez-le pour les paiements reels."
       ],
       "Test Public Key": [
         "Cle publique de test"
@@ -342,29 +486,17 @@
       "Thank you for your order. Pay securely with lomi. using the button below.": [
         "Merci pour votre commande. Payez en toute securite avec lomi. en utilisant le bouton ci-dessous."
       ],
-      "The payment icons to be displayed on the checkout page.": [
-        "Les icones de paiement a afficher sur la page de commande."
-      ],
-      "This controls the payment method description which the user sees during checkout.": [
-        "Controle la description de la methode de paiement affichee au client lors du paiement."
+      "This API key cannot perform this action. Check key permissions in the lomi. dashboard.%s": [
+        "This API key cannot perform this action. Check key permissions in the lomi. dashboard.%s"
       ],
       "This controls the payment method title which the user sees during checkout.": [
         "Controle le titre de la methode de paiement affiche au client lors du paiement."
       ],
-      "This subscription has a free trial, reason for the 0 amount": [
-        "Cet abonnement dispose d'un essai gratuit, ce qui explique le montant de 0"
-      ],
-      "Three": [
-        "Trois"
+      "This payment is not linked to a lomi transaction. Process the refund from your lomi. dashboard.": [
+        "This payment is not linked to a lomi transaction. Process the refund from your lomi. dashboard."
       ],
       "Title": [
         "Titre"
-      ],
-      "To configure your lomi. API keys and enable/disable test mode, do that <a href=\"%s\">here</a>": [
-        "Pour configurer vos cles API lomi. et activer/desactiver le mode test, faites-le <a href=\"%s\">ici</a>"
-      ],
-      "Two": [
-        "Deux"
       ],
       "Unexpected response from lomi. when creating checkout session.": [
         "Reponse inattendue de lomi. lors de la creation de la session de paiement."
@@ -372,20 +504,47 @@
       "unknown": [
         "inconnu"
       ],
-      "Verve": [
-        "Verve"
+      "Use the same signing secret as below. Enable <code>PAYMENT_SUCCEEDED</code> and <code>REFUND_COMPLETED</code> in your <a href=\"%1$s\" target=\"_blank\" rel=\"noopener noreferrer\">lomi. dashboard</a>.": [
+        "Use the same signing secret as below. Enable <code>PAYMENT_SUCCEEDED</code> and <code>REFUND_COMPLETED</code> in your <a href=\"%1$s\" target=\"_blank\" rel=\"noopener noreferrer\">lomi. dashboard</a>."
+      ],
+      "UUID of the lomi. catalog product. Optional if the price ID is set — lomi. can derive the product from the price.": [
+        "UUID of the lomi. catalog product. Optional if the price ID is set — lomi. can derive the product from the price."
+      ],
+      "UUID of the recurring price in your lomi. catalog. Required for WooCommerce Subscriptions checkout.": [
+        "UUID of the recurring price in your lomi. catalog. Required for WooCommerce Subscriptions checkout."
       ],
       "View lomi. WooCommerce settings": [
         "Voir les reglages WooCommerce lomi."
       ],
-      "Visa": [
-        "Visa"
+      "Warning": [
+        "Warning"
       ],
       "We could not confirm the payment amount with lomi.. Please contact the store.": [
         "Nous n'avons pas pu confirmer le montant du paiement avec lomi.. Veuillez contacter la boutique."
       ],
+      "Webhook events": [
+        "Webhook events"
+      ],
+      "Webhook signing secret": [
+        "Webhook signing secret"
+      ],
+      "Webhook URL": [
+        "Webhook URL"
+      ],
+      "Webhook URL (copy into Dashboard → Webhooks)": [
+        "Webhook URL (copy into Dashboard → Webhooks)"
+      ],
+      "When enabled, uses the sandbox API and test credentials below. Turn off only when you are ready for live payments.": [
+        "When enabled, uses the sandbox API and test credentials below. Turn off only when you are ready for live payments."
+      ],
+      "WooCommerce free trial completed locally ($0). No lomi checkout or lomi subscription was created — recurring billing after the trial requires a paid lomi checkout or lomi catalog trial configuration.": [
+        "WooCommerce free trial completed locally ($0). No lomi checkout or lomi subscription was created — recurring billing after the trial requires a paid lomi checkout or lomi catalog trial configuration."
+      ],
       "WooCommerce payment gateway for lomi.": [
         "Passerelle de paiement WooCommerce pour lomi."
+      ],
+      "WooCommerce Subscriptions: map each subscription product to a lomi recurring price in the product editor. Recurring billing is handled by lomi.; WooCommerce does not auto-charge renewals.": [
+        "WooCommerce Subscriptions: map each subscription product to a lomi recurring price in the product editor. Recurring billing is handled by lomi.; WooCommerce does not auto-charge renewals."
       ],
       "You can only add a new card when placing an order.": [
         "Vous ne pouvez ajouter une nouvelle carte que lors du passage d'une commande."
@@ -398,6 +557,9 @@
       ],
       "Your lomi. secret API key (test).": [
         "Votre cle API secrete lomi. (test)."
+      ],
+      "Your payment is being confirmed. You will receive an order update shortly.": [
+        "Your payment is being confirmed. You will receive an order update shortly."
       ]
     }
   }
