@@ -57,6 +57,24 @@ npm run release
 
 Produces `dist/woo-lomi-{version}.zip`. GitHub Actions publishes `woo-lomi.zip` on `woo-v*` tags.
 
+## Local development
+
+Docker Compose bind-mounts this repo into WordPress (same pattern as PrestaShop and Magento dev stacks):
+
+```bash
+cd dev
+docker compose up -d
+```
+
+1. Open http://localhost:8080 and finish WordPress setup.
+2. Install and activate **WooCommerce** (9.6+).
+3. Activate **lomi. for WooCommerce**.
+4. Expose HTTPS with **Cloudflare Tunnel** (`cloudflared tunnel --url http://localhost:8080`) so webhooks reach your machine.
+5. Set **Settings → General → Site Address** to the tunnel URL when testing checkout returns.
+6. Configure sandbox keys in **WooCommerce → Settings → Payments → lomi.** and register the webhook URL in [dashboard.lomi.africa](https://dashboard.lomi.africa).
+
+Merchant setup guide: [docs.lomi.africa — WooCommerce](https://docs.lomi.africa/build/ecommerce-extensions/woocommerce).
+
 ## Configuration
 
 ### Main Settings
