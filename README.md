@@ -23,7 +23,7 @@ The plugin lets merchants accept customer payments in XOF, USD, and EUR while me
 
 - This plugin does not support stores configured with currencies outside XOF, USD, and EUR unless the supported-currency filter is customized.
 - Refunds from WooCommerce require `_lomi_transaction_id` on the order (set after payment). Otherwise process refunds from the lomi. dashboard.
-- Saved cards and automatic subscription renewals are not charged in WooCommerce — recurring billing is handled by the lomi. subscription engine.
+- Saved cards and automatic subscription renewals are not charged in WooCommerce, recurring billing is handled by the lomi. subscription engine.
 - WooCommerce Subscriptions can manage subscription products; link each subscription product to a lomi recurring price in the product editor.
 
 ## Requirements
